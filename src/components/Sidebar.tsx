@@ -15,10 +15,10 @@ interface SidebarProps {
 
 export default function Sidebar({ opinionNews, mostReadNews, hideLatestTab = false, hideOpinion = false }: SidebarProps) {
   return (
-    <aside className="sticky bottom-4 space-y-8">
+    <aside className="space-y-8">
       
       {/* 1. Sticky Rectangle Ad - High value position */}
-      <div className="sticky top-20">
+      <div className="sticky top-20 z-10">
         <AdSlot slotId="sidebar-rectangle-sticky" format="rectangle" />
       </div>
 

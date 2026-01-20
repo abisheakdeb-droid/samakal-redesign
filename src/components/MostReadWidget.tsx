@@ -17,6 +17,18 @@ const toBn = (num: number): string => {
   return num.toString().split('').map(d => bnDigits[parseInt(d)]).join('');
 };
 
+// Get consistent profileauthor image IDs from Unsplash
+const getAuthorImageId = (index: number): string => {
+  const imageIds = [
+    '1580489944761-99b265f6fa56', // Professional
+    '1507003211169-0a1dd7228f2d', // Business
+    '1494790108377-be9c29b29330', // Young
+    '1573496359142-b8d87734a5a2', // Mature
+    '1566492031773-4f4e44671857', // Creative
+  ];
+  return imageIds[index % imageIds.length];
+};
+
 export default function MostReadWidget({ opinionNews, mostReadNews, hideOpinion = false }: MostReadWidgetProps) {
   // If hideOpinion is true, default to mostRead tab
   const [activeTab, setActiveTab] = useState<'opinion' | 'mostRead'>(hideOpinion ? 'mostRead' : 'opinion');
@@ -62,9 +74,9 @@ export default function MostReadWidget({ opinionNews, mostReadNews, hideOpinion 
             {/* Number Counter or Author Image */}
             {activeTab === 'opinion' ? (
                <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative flex-shrink-0 border border-gray-100 mt-1">
-                   {/* Mock Author Image based on index */}
+                   {/* Author profile images from Unsplash */}
                    <Image 
-                      src={`https://randomuser.me/api/portraits/men/${index + 40}.jpg`} 
+                      src={`https://images.unsplash.com/photo-${getAuthorImageId(index)}?w=100&h=100&fit=crop&crop=faces`} 
                       alt="Author" 
                       fill 
                       className="object-cover" 
