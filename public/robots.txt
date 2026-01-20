@@ -1,0 +1,12 @@
+# Samakal Robots.txt
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://samakal.com/sitemap.xml
+
+# Optional: Prevent crawling of specific paths if needed
+# Disallow: /api/
+# Disallow: /admin/

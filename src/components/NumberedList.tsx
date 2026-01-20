@@ -35,9 +35,9 @@ export default function NumberedList() {
         ))}
       </div>
       
-      <button className="w-full py-2 bg-gray-100 text-gray-600 font-bold rounded hover:bg-gray-200 transition text-sm">
+      <Link href="/category/latest" className="w-full py-2 bg-gray-100 text-gray-600 font-bold rounded hover:bg-gray-200 transition text-sm block text-center">
         সব খবর পড়ুন
-      </button>
+      </Link>
     </div>
   );
 }

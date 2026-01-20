@@ -1,8 +1,25 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { Share2 } from "lucide-react";
+import { Share2, Check } from "lucide-react";
+import { useState } from "react";
+import clsx from "clsx";
+import { generateBlurPlaceholder, unsplashLoader } from "@/utils/image";
 
 export default function HeroCard() {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent Link navigation
+    e.stopPropagation(); // Stop event bubbling
+    
+    // Simulate copy
+    navigator.clipboard.writeText(window.location.origin + "/article/1");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <Link href="/article/1" className="group cursor-pointer block">
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl mb-4">
@@ -10,6 +27,9 @@ export default function HeroCard() {
           src="https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?q=80&w=2532&auto=format&fit=crop" 
           alt="Hero Image"
           fill
+          priority
+          placeholder="blur"
+          blurDataURL={generateBlurPlaceholder(16, 9)}
           className="object-cover group-hover:scale-105 transition-transform duration-700"
         />
         <div className="absolute top-4 left-4">
@@ -33,11 +53,29 @@ export default function HeroCard() {
             <span>•</span>
             <span>২ ঘণ্টা আগে</span>
           </div>
-          <button className="text-gray-400 hover:text-gray-800 p-2 rounded-full hover:bg-gray-100 transition">
-            <Share2 size={18} />
-          </button>
+          
+          <div className="relative">
+             <button 
+                onClick={handleShare}
+                className={clsx(
+                    "p-2 rounded-full transition relative z-20",
+                    copied ? "bg-green-100 text-green-600" : "text-gray-400 hover:text-gray-800 hover:bg-gray-100"
+                )}
+             >
+                {copied ? <Check size={18} /> : <Share2 size={18} />}
+             </button>
+             
+             {/* Tooltip */}
+             <div className={clsx(
+                 "absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow transition-opacity duration-300 pointer-events-none whitespace-nowrap",
+                 copied ? "opacity-100" : "opacity-0"
+             )}>
+                 কপি হয়েছে!
+             </div>
+          </div>
         </div>
       </div>
     </Link>
   );
 }
+

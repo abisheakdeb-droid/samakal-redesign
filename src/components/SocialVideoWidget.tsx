@@ -1,0 +1,120 @@
+"use client";
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { Facebook, Youtube, PlayCircle } from 'lucide-react';
+import { useVideoPlayer } from '@/contexts/VideoPlayerContext';
+
+export default function SocialVideoWidget() {
+  const { playVideo } = useVideoPlayer();
+  
+  // Mock YouTube Data with actual video IDs
+  const ytVideos = [
+    { id: "dQw4w9WgXcQ", title: "সমকাল সন্ধ্যা ৭টার সংবাদ | ২০ জানুয়ারি ২০২৬", thumb: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg", duration: "১০:০৫" },
+    { id: "3h2mJnvRbZ8", title: "রাজনীতিতে নতুন মোড়: বিশেষ আলোচনা", thumb: "https://img.youtube.com/vi/3h2mJnvRbZ8/mqdefault.jpg", duration: "০৫:৩০" },
+    { id: "lx2G8Q-hW9E", title: "খেলার সংবাদ: জয়ে ফিরল বাংলাদেশ", thumb: "https://img.youtube.com/vi/lx2G8Q-hW9E/mqdefault.jpg", duration: "০৩:৪৫" },
+    { id: "J---aiyznGQ", title: "বাণিজ্য মেলা জমে উঠেছে", thumb: "https://img.youtube.com/vi/J---aiyznGQ/mqdefault.jpg", duration: "০৪:১২" },
+  ];
+
+  const handleVideoClick = (video: typeof ytVideos[0]) => {
+    playVideo({
+      id: video.id,
+      title: video.title,
+      source: 'youtube',
+      url: video.id,
+      thumbnail: video.thumb,
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      
+      {/* FACEBOOK LIVE WIDGET */}
+      <div className="bg-white border border-blue-100 rounded-xl shadow-sm overflow-hidden mb-8">
+        <div className="bg-[#1877F2] px-4 py-3 flex items-center justify-between">
+           <div className="flex items-center gap-2 text-white font-bold">
+              <Facebook size={20} />
+              <span>ফেসবুক লাইভ</span>
+           </div>
+           <Link href="https://facebook.com/samakal" target="_blank" className="text-blue-100 hover:text-white text-xs transition">
+              আরও দেখুন →
+           </Link>
+        </div>
+        <div className="p-6 bg-gradient-to-br from-blue-50 to-white">
+           {/* Mock Live Stream */}
+           <div 
+              className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4 group cursor-pointer"
+              onClick={() => playVideo({
+                  id: '10153231379946729', // Example FB Video ID
+                  title: 'সমকাল লাইভ: বিশেষ সংবাদ বুলেটিন',
+                  source: 'facebook',
+                  url: '10153231379946729',
+                  thumbnail: 'https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop'
+              })}
+           >
+              <Image 
+                 src="https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop"
+                 alt="Facebook Live"
+                 fill
+                 className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
+              <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
+                  <span className="w-2 h-2 bg-white rounded-full"></span>
+                  লাইভ
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                  <PlayCircle size={48} className="text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+              </div>
+           </div>
+           <p className="text-sm font-bold text-gray-900">প্রধান সংবাদ - সরাসরি সম্প্রচার</p>
+           <p className="text-xs text-gray-500 mt-1">১.২ হাজার দর্শক দেখছেন</p>
+        </div>
+      </div>
+
+      {/* YOUTUBE VIDEO LIST */}
+      <div className="bg-white border border-red-100 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-red-600 px-4 py-3 flex items-center justify-between">
+           <div className="flex items-center gap-2 text-white font-bold">
+              <Youtube size={20} />
+              <span>ইউটিউব চ্যানেল</span>
+           </div>
+           <Link href="/video" className="text-red-100 hover:text-white text-xs transition">
+              আরও দেখুন →
+           </Link>
+        </div>
+        <div className="divide-y divide-gray-100">
+           {ytVideos.map((video) => (
+              <button
+                 key={video.id}
+                 onClick={() => handleVideoClick(video)}
+                 className="w-full flex gap-3 p-3 hover:bg-red-50 transition group text-left"
+              >
+                 <div className="relative w-28 aspect-video flex-shrink-0 rounded overflow-hidden bg-gray-900">
+                    <Image 
+                       src={video.thumb}
+                       alt={video.title}
+                       fill
+                       className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/5 transition-colors">
+                       <PlayCircle size={28} className="text-white opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                    </div>
+                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] px-1.5 py-0.5 rounded font-bold">
+                       {video.duration}
+                    </span>
+                 </div>
+                 <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-gray-800 group-hover:text-red-600 transition line-clamp-2 leading-snug">
+                       {video.title}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">সমকাল টিভি</p>
+                 </div>
+              </button>
+           ))}
+        </div>
+      </div>
+      
+    </div>
+  );
+}
