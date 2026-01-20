@@ -1,5 +1,6 @@
 import { Search, Menu, User, Bell } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Header() {
   const date = new Date().toLocaleDateString("bn-BD", {
@@ -13,8 +14,14 @@ export default function Header() {
     <header className="flex flex-col border-b border-gray-200 bg-white sticky top-0 z-50">
       {/* Top Bar: Logo & Date */}
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="text-4xl font-bold text-brand-red">
-          সমকাল
+        <Link href="/" className="relative h-16 w-64 md:h-12 md:w-56">
+          <Image
+            src="/samakal-logo.png"
+            alt="Samakal Logo"
+            fill
+            className="object-contain object-left"
+            priority
+          />
         </Link>
         <div className="hidden md:flex gap-4 items-center text-sm text-gray-500">
           <span className="flex items-center gap-2">
