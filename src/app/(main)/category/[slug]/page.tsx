@@ -1,0 +1,185 @@
+
+import Link from "next/link";
+import Image from "next/image";
+import Header from "@/components/Header";
+import BreakingTicker from "@/components/BreakingTicker";
+import Sidebar from "@/components/Sidebar";
+import LatestSidebarWidget from "@/components/LatestSidebarWidget";
+import { localizeTime } from "@/utils/bn";
+import { clsx } from "clsx";
+import { fetchArticlesByCategory, fetchLatestArticles } from "@/lib/actions-article";
+import { CATEGORY_MAP } from "@/data/mockNews";
+
+interface PageProps {
+    params: Promise<{ slug: string }>;
+}
+
+export default async function CategoryPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug || "latest";
+  const categoryLabel = CATEGORY_MAP[slug] || (slug === "latest" ? "সর্বশেষ সংবাদ" : slug);
+
+  // --- DATA FETCHING ---
+  let newsItems = [];
+  
+  if (slug === "latest") {
+      newsItems = await fetchLatestArticles(20);
+  } else {
+      newsItems = await fetchArticlesByCategory(slug === "latest" ? "politics" : slug, 20); 
+      // Note: If slug is mapped to a different DB value, handle here. 
+      // Assuming slug matches DB category or we rely on ILIKE matching.
+      // Actually fetchArticlesByCategory uses ILIKE, so "politics" matches "Politics".
+  }
+  
+  // Sidebar Data
+  const sidebarOpinion = await fetchArticlesByCategory("opinion", 10);
+  const sidebarLatest = await fetchLatestArticles(10);
+  const sidebarPolitics = await fetchArticlesByCategory("politics", 10);
+
+
+  // --- LAYOUT LOGIC ---
+  
+  // If no news, show fallback
+  if (!newsItems || newsItems.length === 0) {
+      return (
+        <div className="min-h-screen bg-background text-foreground font-serif">
+            <Header />
+            <BreakingTicker />
+            <main className="container mx-auto px-4 py-20 text-center">
+                <h1 className="text-3xl font-bold mb-4 capitalize">{categoryLabel}</h1>
+                <p>এই মুহূর্তে কোনো খবর পাওয়া যায়নি।</p> 
+                 <Link href="/" className="text-brand-red underline mt-4 block">হোম পেজে ফিরে যান</Link>
+            </main>
+        </div>
+      )
+  }
+
+  // Distribution
+  // 1. Big Lead (Index 0)
+  // 2. Medium Lead (Index 1-2)
+  // 3. Small Grid (Index 3-5)
+  // 4. List (Index 6+)
+
+  const primeBig = newsItems[0];
+  const primeMedium = newsItems.slice(1, 3);
+  const primeSmall = newsItems.slice(3, 6);
+  const listNews = newsItems.slice(6);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-serif">
+      <Header />
+      <BreakingTicker />
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center gap-3 mb-8 border-b border-gray-200 pb-4">
+           <span className="w-1.5 h-8 bg-brand-red rounded-full"></span>
+           <h1 className="text-3xl font-bold text-gray-900 capitalize">{categoryLabel}</h1>
+           <span className="text-gray-400 text-sm mt-2 ml-auto">মোট {newsItems.length}টি সংবাদ</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-9">
+                {/* Level 1 & 2 */}
+                <section className="grid grid-cols-1 lg:grid-cols-12 mb-12 border-b border-gray-100 pb-12">
+                    <Link href={`/article/${primeBig.id}`} className="lg:col-span-8 group block lg:border-r lg:border-gray-200 lg:pr-8">
+                        <div className="aspect-video relative overflow-hidden rounded-xl mb-4">
+                            <Image src={primeBig.image} alt={primeBig.title} fill className="object-cover group-hover:scale-105 transition-transform duration-700"/>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight mb-3 group-hover:text-brand-red transition-colors">{primeBig.title}</h1>
+                        <p className="text-gray-600 text-lg line-clamp-2 mb-3">{primeBig.summary}</p>
+                        <div className="text-sm text-gray-500">{primeBig.author} • {localizeTime(primeBig.time)}</div>
+                    </Link>
+                    <div className="lg:col-span-4 flex flex-col pl-0 lg:pl-8 mt-6 lg:mt-0">
+                        {primeMedium.map((news, idx) => (
+                            <Link key={news.id} href={`/article/${news.id}`} className={clsx(
+                                "group block flex flex-row lg:flex-col gap-4",
+                                idx === 0 && "border-b border-gray-200 pb-6 mb-6"
+                            )}>
+                                <div className="w-1/3 lg:w-full aspect-video relative overflow-hidden rounded-lg shrink-0">
+                                    <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
+                                </div>
+                                <div className="w-2/3 lg:w-full">
+                                    <h2 className="text-xl font-bold text-gray-800 leading-snug group-hover:text-brand-red mb-2">{news.title}</h2>
+                                    <div className="text-xs text-gray-400">{localizeTime(news.time)}</div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Level 3 */}
+                {primeSmall.length > 0 && (
+                <section className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-100 pb-12 mb-12 gap-6 md:gap-0">
+                    {primeSmall.map((news, idx) => (
+                        <Link key={news.id} href={`/article/${news.id}`} className={clsx(
+                            "group block",
+                            idx === 0 && "md:pr-8",
+                            idx === 1 && "md:border-l md:border-gray-200 md:px-8",
+                            idx === 2 && "md:border-l md:border-gray-200 md:pl-8"
+                        )}>
+                            <div className="aspect-video relative overflow-hidden rounded-lg mb-3">
+                                <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 leading-snug group-hover:text-brand-red">{news.title}</h3>
+                            <div className="mt-2 text-xs text-gray-400">{localizeTime(news.time)}</div>
+                        </Link>
+                    ))}
+                </section>
+                )}
+
+                {/* Level 4: List */}
+                <section className="flex flex-col gap-6">
+                    {listNews.map(news => (
+                        <Link key={news.id} href={`/article/${news.id}`} className="group flex flex-col md:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 items-start">
+                             <div className="w-full md:w-64 aspect-video md:aspect-[4/3] relative overflow-hidden rounded-lg shrink-0">
+                                <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800 group-hover:text-brand-red mb-2">{news.title}</h3>
+                                <p className="text-gray-600 line-clamp-2 md:line-clamp-3 mb-3 text-sm md:text-base">{news.summary}</p>
+                                <span className="text-xs text-gray-400">{localizeTime(news.time)}</span>
+                            </div>
+                        </Link>
+                    ))}
+                </section>
+                
+                <div className="mt-12 text-center">
+                   <button className="px-8 py-3 bg-gray-100 text-gray-800 font-bold rounded-full hover:bg-brand-red hover:text-white transition">
+                     আরও সংবাদ দেখুন
+                   </button>
+                </div>
+            </div>
+
+            {/* Sidebar */}
+            {/* Sidebar - Latest News Widget + Ads */}
+            <div className="lg:col-span-3">
+                 <aside className="sticky bottom-4">
+                        <LatestSidebarWidget 
+                            news={sidebarLatest} 
+                        />
+                        
+                        {/* Advertisement 1 */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center min-h-[250px] mb-6 mt-8">
+                            <div className="text-center">
+                                <p className="text-gray-400 text-sm font-bold tracking-wider mb-2">বিজ্ঞাপন</p>
+                                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span className="text-gray-400 text-xs">Ad Space 1</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Advertisement 2 */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center min-h-[250px]">
+                            <div className="text-center">
+                                <p className="text-gray-400 text-sm font-bold tracking-wider mb-2">বিজ্ঞাপন</p>
+                                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span className="text-gray-400 text-xs">Ad Space 2</span>
+                                </div>
+                            </div>
+                        </div>
+                </aside>
+            </div>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -18,7 +18,8 @@ export default function Sidebar({ opinionNews, mostReadNews, hideLatestTab = fal
     <aside className="space-y-8">
       
       {/* 1. Sticky Rectangle Ad - High value position */}
-      <div className="sticky top-20 z-10">
+      {/* 1. Rectangle Ad - High value position */}
+      <div className="mb-8">
         <AdSlot slotId="sidebar-rectangle-sticky" format="rectangle" />
       </div>
 

@@ -13,7 +13,7 @@ export function toBanglaDigits(str: string | number): string {
 export function localizeTime(timeStr: string): string {
     // Converts "3 hours ago" -> "৩ ঘণ্টা আগে"
     // Converts "30 mins ago" -> "৩০ মিনিট আগে"
-    let localized = timeStr
+    const localized = timeStr
         .replace("hours ago", "ঘণ্টা আগে")
         .replace("hour ago", "ঘণ্টা আগে")
         .replace("mins ago", "মিনিট আগে")

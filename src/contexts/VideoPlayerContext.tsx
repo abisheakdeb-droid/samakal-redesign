@@ -51,49 +51,43 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   volume: 0.7,
 };
 
-// Default position (bottom-right)
-const DEFAULT_POSITION: PlayerPosition = {
-  x: typeof window !== 'undefined' ? window.innerWidth - 360 : 0,
-  y: typeof window !== 'undefined' ? window.innerHeight - 240 : 0,
-};
+
 
 // Create Context
 const VideoPlayerContext = createContext<VideoPlayerContextType | undefined>(undefined);
 
 // Provider Component
 export function VideoPlayerProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<VideoPlayerState>({
-    currentVideo: null,
-    isPlaying: false,
-    isMinimized: true,
-    position: { x: 0, y: 0 }, // Safe default
-    userPreferences: DEFAULT_PREFERENCES, // Safe default
-    showPlayer: false,
-  });
-
-  // Load preferences and set initial position on mount
-  useEffect(() => {
+  // Lazy initialization to avoid React Hooks violations
+  const [state, setState] = useState<VideoPlayerState>(() => {
     let savedPrefs = DEFAULT_PREFERENCES;
-    try {
-      const stored = localStorage.getItem('samakal_video_preferences');
-      if (stored) {
-        savedPrefs = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+    let initialPosition = { x: 0, y: 0 };
+
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('samakal_video_preferences');
+        if (stored) {
+          savedPrefs = { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+        }
+      } catch (e) {
+        console.error("Failed to load preferences", e);
       }
-    } catch (e) {
-      console.error("Failed to load preferences", e);
+
+      initialPosition = {
+        x: window.innerWidth - 360,
+        y: window.innerHeight - 240,
+      };
     }
 
-    const initialPosition = {
-      x: window.innerWidth - 360,
-      y: window.innerHeight - 240,
-    };
-
-    setState(prev => ({
-      ...prev,
+    return {
+      currentVideo: null,
+      isPlaying: false,
+      isMinimized: true,
+      position: initialPosition,
       userPreferences: savedPrefs,
-      position: initialPosition
-    }));
-  }, []);
+      showPlayer: false,
+    };
+  });
 
   // Play a new video
   const playVideo = useCallback((video: VideoData) => {

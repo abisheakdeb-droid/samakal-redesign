@@ -174,9 +174,9 @@ export default function Header() {
             <button className="hover:text-brand-red" aria-label="Notifications">
               <Bell size={20} />
             </button>
-            <button className="hover:text-brand-red" aria-label="User account">
+            <Link href="/admin/login" target="_blank" className="hover:text-brand-red" aria-label="User account">
               <User size={20} />
-            </button>
+            </Link>
           </div>
         </div>
       </div>

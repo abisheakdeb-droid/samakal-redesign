@@ -1,14 +1,32 @@
 import { HEADLINES_DB } from "@/data/mockNews";
 import Link from "next/link";
 import { Zap } from "lucide-react";
+import { fetchSettings } from "@/lib/actions-settings";
 
-export default function BreakingTicker() {
-  // Combine all major headlines for the ticker
-  const headlines = [
-    ...(HEADLINES_DB.latest || []),
-    ...(HEADLINES_DB.politics || []),
-    ...(HEADLINES_DB.bangladesh || [])
-  ].slice(0, 10); // Take top 10
+interface BreakingTickerProps {
+  customTicker?: string | null;
+}
+
+export default async function BreakingTicker({ customTicker }: BreakingTickerProps) {
+  // Fetch global settings
+  const settings = await fetchSettings();
+
+  // If globally disabled, don't render anything
+  if (!settings.breaking_news_is_active) {
+    return null;
+  }
+
+  // Use DB ticker text if available, otherwise fallback to prop or mock data
+  const tickerText = settings.breaking_news_ticker || customTicker;
+
+  // Logic to parse ticker items
+  const headlines = tickerText 
+    ? tickerText.split('|').map(t => t.trim()).filter(t => t.length > 0)
+    : [
+        ...(HEADLINES_DB.latest || []),
+        ...(HEADLINES_DB.politics || []),
+        ...(HEADLINES_DB.bangladesh || [])
+      ].slice(0, 10); 
 
   return (
     <div className="bg-orange-50 border-b border-orange-100 overflow-hidden">

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 /* Forcing rebuild for theme update */
 
 @theme {
@@ -16,35 +17,11 @@
   --foreground: #1f2937;
 }
 
-/* LENIS RECOMMENDED CSS */
-html.lenis, html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
-}
-
-
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-tiro-bangla), serif;
 }
-
 
 /* Global Selection Color */
 ::selection {
@@ -55,29 +32,43 @@ body {
 /* --- ANIMATIONS --- */
 @media (prefers-reduced-motion: no-preference) {
   .animate-gradient-xy {
-      animation: gradient-xy 3s ease infinite;
-      background-size: 200% 200%;
+    animation: gradient-xy 3s ease infinite;
+    background-size: 200% 200%;
   }
 }
 
 @keyframes gradient-xy {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .animate-shimmer {
-    animation: shimmer 1.5s infinite linear;
+  animation: shimmer 1.5s infinite linear;
 }
 
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -99,9 +90,99 @@ body {
   border-radius: 20px;
 }
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
 }
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Tables */
+/* Tables */
+div.ProseMirror table {
+  border-collapse: collapse;
+  margin: 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+  border: 1px solid #d1d5db; /* gray-300 */
+}
+
+div.ProseMirror table td,
+div.ProseMirror table th {
+  border: 1px solid #d1d5db !important;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 6px 8px;
+  position: relative;
+  vertical-align: top;
+}
+
+div.ProseMirror table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  text-align: left;
+}
+
+div.ProseMirror table .selectedCell:after {
+  background: rgba(59, 130, 246, 0.2);
+  content: "";
+  left: 0;
+  bottom: 0;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.ProseMirror table .column-resize-handle {
+  background-color: #adf;
+  bottom: -2px;
+  position: absolute;
+  right: -2px;
+  pointer-events: none;
+  top: 0;
+  width: 4px;
+}
+
+/* Blockquote */
+.ProseMirror blockquote {
+  border-left: 3px solid #616161;
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #616161;
+}
+
+/* Images & Video */
+.ProseMirror img {
+  border-radius: 0.5rem;
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.ProseMirror div[data-youtube-video] {
+  cursor: move;
+  padding-right: 24px;
+}
+
+.ProseMirror iframe {
+  border: 8px solid #000;
+  border-radius: 4px;
+  min-width: 200px;
+  min-height: 200px;
+  display: block;
+  outline: 0px solid transparent;
+}
+

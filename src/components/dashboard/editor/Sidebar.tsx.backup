@@ -1,0 +1,109 @@
+"use client";
+
+import { Upload, Calendar, Globe, Tag } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+
+
+interface SidebarProps {
+    onPublish: (metadata: any) => void;
+    isPublishing: boolean;
+    category: string;
+    setCategory: (cat: string) => void;
+    image?: string;
+    setImage?: (img: string) => void; // Placeholder for now
+}
+
+export default function Sidebar({ 
+    onPublish, 
+    isPublishing, 
+    category, 
+    setCategory 
+}: SidebarProps) {
+  
+  return (
+    <aside className="w-80 border-l border-gray-100 bg-gray-50/50 p-6 h-[calc(100vh-64px)] overflow-y-auto hidden xl:block">
+      <div className="space-y-8">
+        {/* Publish Actions */}
+        <div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">প্রকাশনা</h3>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => onPublish({ status: 'draft' })}
+              disabled={isPublishing}
+              className="flex-1 py-2 px-3 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium disabled:opacity-50"
+            >
+              খসড়া সংরক্ষণ
+            </button>
+            <button 
+              onClick={() => onPublish({ status: 'published' })}
+              disabled={isPublishing}
+              className="flex-1 py-2 px-3 bg-black text-white rounded-lg hover:bg-gray-800 text-sm font-bold disabled:opacity-50"
+            >
+              {isPublishing ? 'প্রকাশ হচ্ছে...' : 'প্রকাশ করুন'}
+            </button>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
+             <Calendar size={12} />
+             <span>সরাসরি লাইভে যাবে</span>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">বিভাগ</h3>
+            <select 
+                value={category} 
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-black/5"
+            >
+                <option value="">বিভাগ নির্বাচন করুন...</option>
+                <option value="Politics">রাজনীতি</option>
+                <option value="Bangladesh">বাংলাদেশ</option>
+                <option value="World">বিশ্ব</option>
+                <option value="Sports">খেলা</option>
+                <option value="Entertainment">বিনোদন</option>
+                <option value="Technology">প্রযুক্তি</option>
+                <option value="Opinion">মতামত</option>
+                <option value="Business">ব্যবসা</option>
+                <option value="General">সাধারণ</option>
+            </select>
+        </div>
+
+        {/* Featured Image */}
+        <div>
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">প্রধান ছবি</h3>
+          <div className="aspect-video bg-white border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors group">
+             <div className="bg-gray-100 p-3 rounded-full mb-2 group-hover:bg-gray-200 transition">
+                <Upload size={18} className="text-gray-500" />
+             </div>
+             <span className="text-xs text-gray-500 font-medium">আপলোড করতে ক্লিক করুন</span>
+          </div>
+        </div>
+
+        {/* SEO Settings */}
+        <div>
+             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">এসইও সেটিংস</h3>
+             <div className="space-y-3">
+                 <div>
+                    <label className="text-xs text-gray-500 mb-1 block">মেটা শিরোনাম</label>
+                    <input 
+                        type="text" 
+                        placeholder="পেজ শিরোনাম"
+                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400"
+                    />
+                 </div>
+                 <div>
+                    <label className="text-xs text-gray-500 mb-1 block">মেটা বর্ণনা</label>
+                    <textarea 
+                        rows={3}
+                        placeholder="বর্ণনা..."
+                        className="w-full p-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 resize-none"
+                    />
+                 </div>
+             </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

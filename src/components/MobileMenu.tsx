@@ -94,7 +94,15 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             aria-label="Close menu"
           >
             <X size={24} />
-</button>
+          </button>
+        </div>
+
+        {/* Login Link (Mobile) */}
+        <div className="px-4 py-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <span className="text-sm text-gray-500">অ্যাকাউন্ট</span>
+            <Link href="/admin/login" className="text-sm font-bold text-brand-red hover:underline flex items-center gap-1">
+                লগইন
+            </Link>
         </div>
 
         {/* Navigation Links */}

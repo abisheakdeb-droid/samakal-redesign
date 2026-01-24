@@ -12,21 +12,37 @@ interface SearchOverlayProps {
   onClose: () => void;
 }
 
+import { useRouter } from 'next/navigation';
+
 export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'title' | 'author' | 'date'>('all');
   const [isAnimating, setIsAnimating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Handle open/close animations
   useEffect(() => {
     if (isOpen) {
       setIsAnimating(true);
-      setTimeout(() => inputRef.current?.focus(), 100); // Focus input after open
+      setTimeout(() => inputRef.current?.focus(), 100); 
     } else {
-      setTimeout(() => setIsAnimating(false), 300); // Wait for fade out
+      setTimeout(() => setIsAnimating(false), 300); 
     }
   }, [isOpen]);
+
+  const handleSearch = () => {
+      if (!query.trim()) return;
+      onClose();
+      router.push(`/search?q=${encodeURIComponent(query)}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+          handleSearch();
+      }
+  };
+
 
   // Lock body scroll when open
   useEffect(() => {
@@ -121,7 +137,8 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="কী খুঁজতে চান? (শিরোনাম, লেখক, বা তারিখ লিখুন...)"
+                    onKeyDown={handleKeyDown}
+                    placeholder="কী খুঁজতে চান? (লিখে Enter চাপুন...)"
                     className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 py-6 pl-14 text-3xl md:text-5xl font-light text-gray-900 dark:text-white placeholder:text-gray-300 focus:outline-none focus:border-brand-red transition-all"
                 />
             </div>

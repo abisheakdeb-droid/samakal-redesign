@@ -4,11 +4,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Facebook, Youtube, PlayCircle } from 'lucide-react';
 import { useVideoPlayer } from '@/contexts/VideoPlayerContext';
+import { useEffect, useState } from 'react';
+import { fetchSettings, SiteSettings } from '@/lib/actions-settings';
 
 export default function SocialVideoWidget() {
   const { playVideo } = useVideoPlayer();
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+  useEffect(() => {
+    fetchSettings().then(setSettings);
+  }, []);
   
-  // Mock YouTube Data with actual video IDs
+  // Dynamic FB Data
+  const fbUrl = settings?.facebook_live_url || '10153231379946729'; 
+  const showFbLive = settings?.facebook_is_live ?? false;
+
+  // Mock YouTube Data (Ideally this would fetch from YT API using settings.youtube_playlist_id)
   const ytVideos = [
     { id: "dQw4w9WgXcQ", title: "সমকাল সন্ধ্যা ৭টার সংবাদ | ২০ জানুয়ারি ২০২৬", thumb: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg", duration: "১০:০৫" },
     { id: "3h2mJnvRbZ8", title: "রাজনীতিতে নতুন মোড়: বিশেষ আলোচনা", thumb: "https://img.youtube.com/vi/3h2mJnvRbZ8/mqdefault.jpg", duration: "০৫:৩০" },
@@ -29,48 +40,50 @@ export default function SocialVideoWidget() {
   return (
     <div className="space-y-8">
       
-      {/* FACEBOOK LIVE WIDGET */}
-      <div className="bg-white border border-blue-100 rounded-xl shadow-sm overflow-hidden mb-8">
-        <div className="bg-[#1877F2] px-4 py-3 flex items-center justify-between">
-           <div className="flex items-center gap-2 text-white font-bold">
-              <Facebook size={20} />
-              <span>ফেসবুক লাইভ</span>
-           </div>
-           <Link href="https://facebook.com/samakal" target="_blank" className="text-blue-100 hover:text-white text-xs transition">
-              আরও দেখুন →
-           </Link>
+      {/* FACEBOOK LIVE WIDGET - Only show if LIVE is enabled in settings */}
+      {showFbLive && (
+        <div className="bg-white border border-blue-100 rounded-xl shadow-sm overflow-hidden mb-8">
+            <div className="bg-[#1877F2] px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white font-bold">
+                <Facebook size={20} />
+                <span>ফেসবুক লাইভ</span>
+            </div>
+            <Link href="https://facebook.com/samakal" target="_blank" className="text-blue-100 hover:text-white text-xs transition">
+                আরও দেখুন →
+            </Link>
+            </div>
+            <div className="p-6 bg-gradient-to-br from-blue-50 to-white">
+            {/* Live Stream */}
+            <div 
+                className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4 group cursor-pointer"
+                onClick={() => playVideo({
+                    id: fbUrl,
+                    title: 'সমকাল লাইভ: বিশেষ সংবাদ বুলেটিন',
+                    source: 'facebook',
+                    url: fbUrl,
+                    thumbnail: 'https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop'
+                })}
+            >
+                <Image 
+                    src="https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop"
+                    alt="Facebook Live"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
+                <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
+                    <span className="w-2 h-2 bg-white rounded-full"></span>
+                    লাইভ
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <PlayCircle size={48} className="text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                </div>
+            </div>
+            <p className="text-sm font-bold text-gray-900">প্রধান সংবাদ - সরাসরি সম্প্রচার</p>
+            <p className="text-xs text-gray-500 mt-1">১.২ হাজার দর্শক দেখছেন</p>
+            </div>
         </div>
-        <div className="p-6 bg-gradient-to-br from-blue-50 to-white">
-           {/* Mock Live Stream */}
-           <div 
-              className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4 group cursor-pointer"
-              onClick={() => playVideo({
-                  id: '10153231379946729', // Example FB Video ID
-                  title: 'সমকাল লাইভ: বিশেষ সংবাদ বুলেটিন',
-                  source: 'facebook',
-                  url: '10153231379946729',
-                  thumbnail: 'https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop'
-              })}
-           >
-              <Image 
-                 src="https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop"
-                 alt="Facebook Live"
-                 fill
-                 className="object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-              <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
-                  <span className="w-2 h-2 bg-white rounded-full"></span>
-                  লাইভ
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                  <PlayCircle size={48} className="text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all" />
-              </div>
-           </div>
-           <p className="text-sm font-bold text-gray-900">প্রধান সংবাদ - সরাসরি সম্প্রচার</p>
-           <p className="text-xs text-gray-500 mt-1">১.২ হাজার দর্শক দেখছেন</p>
-        </div>
-      </div>
+      )}
 
       {/* YOUTUBE VIDEO LIST */}
       <div className="bg-white border border-red-100 rounded-xl shadow-sm overflow-hidden">

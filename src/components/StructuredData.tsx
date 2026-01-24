@@ -13,6 +13,7 @@ interface NewsArticleSchema {
     name: string;
     logo: string;
   };
+  url?: string;
 }
 
 interface BreadcrumbItem {
@@ -52,7 +53,7 @@ export default function StructuredData({ type, data }: StructuredDataProps) {
       },
       mainEntityOfPage: {
         '@type': 'WebPage',
-        '@id': typeof window !== 'undefined' ? window.location.href : '',
+        '@id': article.url || 'https://samakal.com',
       },
     };
   } else if (type === 'BreadcrumbList') {

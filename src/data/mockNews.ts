@@ -360,6 +360,7 @@ export const getArticleBySlug = (slug: string) => {
 export interface NewsItem {
   id: string;
   title: string;
+  sub_headline?: string;
   summary: string;
   category: string;
   catSlug?: string;
@@ -368,11 +369,27 @@ export interface NewsItem {
   date: string; // New Date Field
   time: string;
   content: string;
+  news_type?: string;
+  location?: string;
+  tags?: string[];
+  source?: string;
+  sourceUrl?: string;
   relatedVideo?: {
     id: string;
     source: 'youtube' | 'facebook';
     title?: string;
   };
+  images?: {
+    id: string;
+    url: string;
+    caption?: string;
+    type: 'featured' | 'thumbnail' | 'gallery';
+  }[];
+  contributors?: {
+    id: string; // or contributor_id
+    name: string;
+    role: string;
+  }[];
 }
 
 // Helper: Get Contextual Related News
