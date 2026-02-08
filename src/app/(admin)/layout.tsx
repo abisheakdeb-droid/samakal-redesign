@@ -16,7 +16,8 @@ import {
   Zap,
   Globe,
   Image as ImageIcon,
-  ShieldAlert
+  ShieldAlert,
+  Bell
 } from 'lucide-react';
 import Image from 'next/image';
 import { clsx } from 'clsx';
@@ -24,12 +25,22 @@ import { Toaster } from 'sonner';
 import { CommandPalette } from '@/components/dashboard/CommandPalette';
 
 // Protected Route Wrapper
+import { useLocalStorage } from '@/hooks/use-local-storage';
+
+// Protected Route Wrapper
 function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // Persist Sidebar State
+  const [isSidebarOpen, setIsSidebarOpen] = useLocalStorage('samakal_sidebar_open', true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user && pathname !== '/admin/login') {
@@ -37,9 +48,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, router, pathname]);
 
-  if (isLoading) return <div className="h-screen w-full flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-red"></div></div>;
+  if (!mounted || (isLoading && !user)) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-red"></div>
+      </div>
+    );
+  }
 
-  // Allow unrestricted access to login page
   if (pathname === '/admin/login') return <>{children}</>;
 
   if (!user) return null;
@@ -51,6 +67,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     { icon: BarChart3, label: 'Growth Engine', href: '/admin/dashboard/analytics' },
     // Only Admin can see Team Management
     ...(user.role === 'admin' ? [{ icon: Users, label: 'Team Access', href: '/admin/dashboard/team' }] : []),
+    { icon: Bell, label: 'Notifications', href: '/admin/dashboard/notifications' },
     { icon: Settings, label: 'Settings', href: '/admin/dashboard/settings' },
   ];
 
@@ -66,17 +83,17 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50 flex font-sans">
       <Toaster position="top-right" />
       
-      {/* Sidebar - Desktop */}
+      {/* Sidebar - Desktop - Z-INDEX BOOST */}
       <aside 
         className={clsx(
-            "hidden md:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 fixed inset-y-0 left-0 z-30",
+            "hidden md:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 fixed inset-y-0 left-0 z-50 shadow-sm",
             isSidebarOpen ? "w-64" : "w-20"
         )}
       >
         <div className="h-16 flex items-center justify-center border-b border-gray-100 relative overflow-hidden">
              {isSidebarOpen ? (
                  <div className="flex flex-col items-center">
-                    <span className="text-xl font-bold bg-gradient-to-r from-brand-red to-red-600 bg-clip-text text-transparent">Samakal AI</span>
+                    <span className="text-xl font-bold bg-linear-to-r from-brand-red to-red-600 bg-clip-text text-transparent">Samakal AI</span>
                     <span className="text-[10px] text-gray-400 tracking-widest uppercase">Studio</span>
                  </div>
              ) : (
@@ -99,7 +116,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                     )}
                     title={!isSidebarOpen ? item.label : ''}
                 >
-                    <item.icon size={22} className={clsx("flex-shrink-0", active ? "text-brand-red" : "text-gray-400 group-hover:text-gray-600")} />
+                    <item.icon size={22} className={clsx("shrink-0", active ? "text-brand-red" : "text-gray-400 group-hover:text-gray-600")} />
                     {isSidebarOpen && (
                         <span className="font-medium">
                             {item.label}

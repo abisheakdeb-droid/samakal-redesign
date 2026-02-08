@@ -1,7 +1,5 @@
 
 
-import Header from "@/components/Header";
-import BreakingTicker from "@/components/BreakingTicker";
 import PhotoSlider from "@/components/PhotoSlider";
 import { Camera } from "lucide-react";
 import Image from "next/image";
@@ -9,12 +7,7 @@ import Image from "next/image";
 export default function PhotoPage() {
   return (
     <div className="min-h-screen bg-black text-white font-serif">
-      {/* Sticky Header + Breaking News */}
-      <div className="sticky top-0 z-50">
-        <Header />
-        <BreakingTicker />
-      </div>
-      
+
       {/* Hero Slider */}
       <section className="mb-12">
         <PhotoSlider />
@@ -118,7 +111,7 @@ export default function PhotoPage() {
              ].map((album) => (
                  <div key={album.id} className="group cursor-pointer">
                     {/* Cover Container - Aspect Ratio 4:3 */}
-                    <div className="relative aspect-[4/3] bg-gray-900 overflow-hidden rounded-xl mb-4">
+                    <div className="relative aspect-4/3 bg-gray-900 overflow-hidden rounded-xl mb-4">
                         
                         {/* 1. Main Cover Image (Visible by default, fades out on hover) */}
                         <div className="absolute inset-0 transition-opacity duration-500 ease-in-out group-hover:opacity-0 z-10">

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { NewsItem } from '@/data/mockNews';
-import { Clock } from 'lucide-react';
+import { NewsItem } from "@/types/news";
 import { clsx } from 'clsx';
 
 interface LatestSidebarWidgetProps {
@@ -10,10 +9,7 @@ interface LatestSidebarWidgetProps {
 }
 
 // Bangla digit converter
-const toBn = (num: number): string => {
-  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  return num.toString().split('').map(d => bnDigits[parseInt(d)]).join('');
-};
+import { toBanglaDigits } from "@/utils/bn";
 
 // Mock relative time generator (since mock data doesn't have real timestamps)
 // In a real app, this would use date-fns/moment to diff current time vs published time
@@ -23,54 +19,52 @@ const getRelativeTime = (index: number): string => {
   if (index === 2) return '১ ঘণ্টা আগে';
   if (index === 3) return '২ ঘণ্টা আগে';
   if (index === 4) return '৩ ঘণ্টা আগে';
-  return `${toBn(index + 1)} ঘণ্টা আগে`;
+  return `${toBanglaDigits(index + 1)} ঘণ্টা আগে`;
 };
 
 export default function LatestSidebarWidget({ news }: LatestSidebarWidgetProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 relative z-10 shadow-[0_2px_10px_-5px_rgba(0,0,0,0.1)]">
-        <h3 className="text-center py-3 text-brand-red font-bold text-lg border-b-2 border-brand-red inline-block w-full">
-            সর্বশেষ
-        </h3>
+      <div className="flex items-center gap-2 mb-4 border-b-2 border-brand-gold pb-2">
+        <span className="w-2 h-2 rounded-full bg-brand-red"></span>
+        <h2 className="text-xl font-bold text-gray-800">সর্বশেষ</h2>
       </div>
 
-      {/* News List - Scrollable Container (Visible 5 Items approx) */}
-      <div className="divide-y divide-gray-100 h-[480px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+      {/* News List Container with Scroll */}
+      <div className="h-[480px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="flex flex-col gap-0 divide-y divide-gray-100">
         {news.map((item, index) => (
           <Link 
             key={item.id} 
             href={`/article/${item.id}`}
-            className="flex items-start gap-4 p-4 hover:bg-gray-50 transition group"
+            className="group flex gap-3 py-4 items-start hover:bg-gray-50 transition-colors rounded-lg px-2 -mx-2"
           >
             {/* Number */}
-            <span className="text-3xl font-bold text-gray-200 group-hover:text-brand-red/20 transition font-english -mt-1 min-w-[30px] text-center">
-              {toBn(index + 1)}
+            <span className="text-3xl font-bold text-gray-300 group-hover:text-brand-red transition-colors font-serif leading-none mt-1">
+              {toBanglaDigits(index + 1)}
             </span>
             
-            <div className="flex-1">
-              <h4 className="font-semibold text-gray-800 leading-snug group-hover:text-brand-red transition mb-2">
+            <div>
+              <h3 className="text-lg font-medium text-gray-800 group-hover:text-brand-red leading-snug">
                 {item.title}
-              </h4>
-              <div className="flex items-center gap-1 text-xs text-gray-400 font-medium">
-                  <Clock size={12} />
-                  <span>{getRelativeTime(index)}</span>
-              </div>
+              </h3>
+              <span className="text-xs text-gray-400 mt-1 block">
+                  {getRelativeTime(index)}
+              </span>
             </div>
           </Link>
         ))}
+        </div>
       </div>
 
-      {/* Read More Footer */}
-      <div className="bg-gray-50 p-3 text-center border-t border-gray-100 relative z-10">
-        <Link 
-            href="/category/latest" 
-            className="text-sm font-bold text-gray-600 hover:text-brand-red transition inline-flex items-center gap-1"
-        >
-            আরও পড়ুন →
-        </Link>
-      </div>
+      {/* Footer Button */}
+      <Link 
+        href="/category/latest" 
+        className="w-full py-2 bg-gray-100 text-gray-600 font-bold rounded hover:bg-gray-200 transition text-sm block text-center"
+      >
+        সব খবর পড়ুন
+      </Link>
     </div>
   );
 }

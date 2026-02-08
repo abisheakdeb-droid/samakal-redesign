@@ -1,7 +1,5 @@
 
 
-import Header from "@/components/Header";
-import BreakingTicker from "@/components/BreakingTicker";
 import VideoBentoGrid from "@/components/VideoBentoGrid";
 import { PlayCircle } from "lucide-react";
 import Image from "next/image";
@@ -97,12 +95,7 @@ const VIDEO_CATEGORIES = [
 export default function VideoPage() {
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white font-serif">
-      {/* Sticky Header + Breaking News */}
-      <div className="sticky top-0 z-50">
-        <Header />
-        <BreakingTicker />
-      </div>
-      
+
       <main className="container mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="flex items-center gap-3 mb-8">

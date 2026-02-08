@@ -1,0 +1,126 @@
+import { CATEGORY_MAP } from './categories';
+
+export const SUB_CATEGORIES: Record<string, string[]> = {
+  bangladesh: [
+    'education',
+    'law-courts',
+    'health',
+    'agriculture',
+    'parliament',
+    'environment',
+    'struggle',
+  ],
+  economics: [
+    'industry-trade',
+    'share-market',
+    'bank-insurance',
+    'budget',
+  ],
+  opinion: [
+    'interview',
+    'chaturanga',
+    'reaction',
+    'khola-chokhe',
+    'muktomunch',
+    'onno-drishti',
+    'editorial',
+  ],
+  entertainment: [
+    'bollywood',
+    'hollywood',
+    'dhallywood',
+    'tollywood',
+    'television',
+    'music',
+    'other-entertainment',
+    'entertainment-photos',
+    'ott',
+    'stage',
+  ],
+  sports: [
+    'football',
+    'cricket',
+    'tennis',
+    'golf',
+    'badminton',
+    't20-world-cup',
+    'other-sports',
+    'miscellaneous',
+  ],
+  politics: [
+    'awami-league',
+    'bnp',
+    'jamaat',
+    'jatiya-party',
+    'others-politics',
+    'election',
+  ],
+  world: [
+    'asia',
+    'europe',
+    'america',
+    'middle-east',
+    'south-asia',
+    'war',
+  ],
+  technology: [
+    'gadgets',
+    'social-media',
+    'it-sector',
+    'science',
+    'apps-games',
+  ],
+  lifestyle: [
+    'fashion',
+    'food',
+    'travel',
+    'health-tips',
+    'relationship',
+    'religion',
+  ],
+  education: [
+    'campus',
+    'admission',
+    'exam-results',
+    'scholarship',
+  ],
+  crime: [
+    'murder',
+    'corruption',
+    'rape',
+    'trafficking',
+    'court',
+  ],
+  capital: [
+    'north-city',
+    'south-city',
+    'traffic',
+    'services',
+  ],
+  other: [
+    'literature',
+    'religion',
+    'jobs',
+  ],
+};
+
+// Helper to check if a slug is a subcategory
+export function isSubcategory(slug: string): boolean {
+  return Object.values(SUB_CATEGORIES).flat().includes(slug);
+}
+
+// Get parent category for a subcategory slug
+export function getParentCategory(slug: string): string | null {
+  for (const [parent, children] of Object.entries(SUB_CATEGORIES)) {
+    if (children.includes(slug)) {
+      return parent;
+    }
+  }
+  return null;
+}
+
+// Get all subcategories for a parent (Bengali names)
+export function getSubcategoriesBengali(parentSlug: string): string[] {
+  const childSlugs = SUB_CATEGORIES[parentSlug] || [];
+  return childSlugs.map(slug => CATEGORY_MAP[slug]).filter(Boolean);
+}

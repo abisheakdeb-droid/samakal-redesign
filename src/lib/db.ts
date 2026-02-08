@@ -8,35 +8,31 @@ import type { QueryResultRow, QueryResult } from "@vercel/postgres";
  * If a direct connection string is provided (common in local dev or migrations), it throws a 'VercelPostgresError'.
  * This wrapper catches that specific error and falls back to `createClient` which supports direct connections.
  */
+const globalForSql = global as unknown as { fallbackClient: ReturnType<typeof createClient> };
+
 export async function sql<O extends QueryResultRow>(
   strings: TemplateStringsArray, 
   ...values: any[]
 ): Promise<QueryResult<O>> {
   try {
-    // Attempt to use the standard pooled query
     return await vercelSql<O>(strings, ...values);
-  } catch (error: any) {
-    // Check if the error is due to an invalid connection string format (Direct vs Pooled)
-    // The message usually suggests using `createClient()`
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const code = (error as { code?: string })?.code;
+
     const isConnectionError = 
-        error.code === 'invalid_connection_string' || 
-        error.message?.includes('createClient') ||
-        error.message?.includes('pooled connection string');
+        code === 'invalid_connection_string' || 
+        message.includes('createClient') ||
+        message.includes('pooled connection string');
 
     if (isConnectionError) {
-      // In development or when using direct connections, we fallback to a fresh client
-      // Note: In high-traffic production, this is less efficient than pooling, 
-      // but it solves the crash when the standard pooler is not available.
-      const client = createClient();
-      await client.connect();
-      try {
-        return await client.sql<O>(strings, ...values);
-      } finally {
-        await client.end();
+      if (!globalForSql.fallbackClient) {
+        globalForSql.fallbackClient = createClient();
+        await globalForSql.fallbackClient.connect();
       }
+      return await globalForSql.fallbackClient.sql(strings, ...values);
     }
     
-    // Re-throw other errors (syntax, constraints, etc.)
     throw error;
   }
 }

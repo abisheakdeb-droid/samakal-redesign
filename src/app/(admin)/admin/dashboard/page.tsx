@@ -1,14 +1,15 @@
-
-import Link from 'next/link';
-import { Users, TrendingUp, FileText, Clock, ExternalLink } from 'lucide-react';
+import { Users, TrendingUp, FileText, Clock } from 'lucide-react';
 import MetricsCard from '@/components/dashboard/MetricsCard';
 import LivePulseGraph from '@/components/dashboard/LivePulseGraph';
 import AIInsights from '@/components/dashboard/AIInsights';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import QuickNote from '@/components/dashboard/QuickNote';
+import AnalyticsChart from '@/components/dashboard/AnalyticsChart';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import { fetchAnalyticsOverview, fetchTopArticles } from "@/lib/actions-analytics";
+import QuickActions from '@/components/dashboard/QuickActions';
+import { fetchAnalyticsOverview, fetchTopArticles, fetchCategoryStats } from "@/lib/actions-analytics";
 import { fetchArticles } from "@/lib/actions-article";
+import { fetchSettings } from "@/lib/actions-settings";
 
 // Helper for relative time
 function timeAgo(dateString: string) {
@@ -33,24 +34,29 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   // Fetch real data in parallel
-  const [overview, recentArticles, topArticles] = await Promise.all([
+  const [overview, recentArticles, topArticles, categoryStats, settings] = await Promise.all([
     fetchAnalyticsOverview(),
-    fetchArticles(), // defaults to limit 10
-    fetchTopArticles(5)
+    fetchArticles(), 
+    fetchTopArticles(5),
+    fetchCategoryStats(),
+    fetchSettings()
   ]);
 
   const recentActivities = recentArticles.slice(0, 5).map(article => ({
       id: article.id,
       user: article.author || 'System',
-      action: 'published', // assuming all recent are publishes for now
+      action: 'published', 
       target: `"${article.title}"`,
-      time: timeAgo(article.created_at) // requires logic, created_at is available in raw row
+      time: timeAgo(article.created_at)
   }));
 
   return (
     <div className="space-y-8">
       {/* Header Section */}
       <DashboardHeader />
+
+      {/* Real-time Quick Actions */}
+      <QuickActions settings={settings} />
 
       {/* 1. Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -104,20 +110,29 @@ export default async function DashboardPage() {
 
       {/* 2. Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-         {/* Live Pulse (8 cols) - Keeping as Visualizer for now */}
+         {/* Live Pulse (8 cols) */}
          <div className="lg:col-span-8 h-[400px]">
              <LivePulseGraph />
          </div>
 
-         {/* AI Insights (4 cols) - Real Top Articles */}
+         {/* AI Insights (4 cols) */}
          <div className="lg:col-span-4 h-[400px]">
              <AIInsights topArticles={topArticles} />
          </div>
       </div>
 
-      {/* 3. Bottom Grid */}
+      {/* 3. Category Performance (Full Width) */}
+      <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+          <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Category Performance</h3>
+              <p className="text-sm text-gray-500">Articles and views by category</p>
+          </div>
+          <AnalyticsChart data={categoryStats} />
+      </div>
+
+      {/* 4. Bottom Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Recent Activity (8 cols) - Real Recent Articles */}
+          {/* Recent Activity (8 cols) */}
           <div className="lg:col-span-8 h-[350px]">
               <RecentActivity activities={recentActivities} />
           </div>

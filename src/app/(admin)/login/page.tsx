@@ -21,6 +21,9 @@ export default function LoginPage() {
         if (result) {
              setError(result);
         } else {
+             // Successful login - set session flag for client-side useAuth bridge
+             sessionStorage.setItem('samakal_session_active', 'true');
+             
              // Successful login automatically redirects, 
              // but we can force client nav if needed
              router.push('/admin/dashboard');
@@ -47,7 +50,7 @@ export default function LoginPage() {
              priority
            />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40 z-0" />
+        <div className="absolute inset-0 bg-linear-to-t from-black via-transparent to-black/40 z-0" />
 
         <div className="relative z-10">
           <h1 className="text-4xl font-serif font-bold mb-2">সমকাল</h1>

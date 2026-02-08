@@ -1,14 +1,65 @@
 
 
-import Header from "@/components/Header";
-import BreakingTicker from "@/components/BreakingTicker";
 import LatestSidebarWidget from"@/components/LatestSidebarWidget";
+import AdSlot from "@/components/AdSlot";
+import { redirect } from "next/navigation";
 import ArticleContent from "@/components/ArticleContent";
 import ViewTracker from "@/components/ViewTracker";
 import { fetchArticleById, fetchArticlesByCategory, fetchLatestArticles } from "@/lib/actions-article";
+import { fetchComments } from "@/lib/actions-comment";
+import { auth } from "@/auth";
+import JsonLd from "@/components/JsonLd";
+import { Metadata, ResolvingMetadata } from "next";
 
 interface PageProps {
     params: Promise<{ slug: string }>;
+}
+
+// Generate Dynamic Metadata for SEO
+export async function generateMetadata(
+  { params }: PageProps,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  const article = await fetchArticleById(slug);
+
+  if (!article) {
+    return {
+      title: "Article Not Found | Samakal",
+      description: "The requested article could not be found."
+    };
+  }
+
+  const previousImages = (await parent).openGraph?.images || [];
+  const articleImage = article.image 
+    ? [article.image] 
+    : [];
+
+  return {
+    title: `${article.title} | সমকাল`,
+    description: article.sub_headline || article.summary || `Detailed report on ${article.category} from Samakal.`,
+    openGraph: {
+      type: "article",
+      title: article.title,
+      description: article.sub_headline || article.summary || undefined,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/article/${article.slug}`,
+      siteName: "Samakal",
+      images: [...articleImage, ...previousImages],
+      publishedTime: article.date,
+      authors: [article.author || "Samakal Reporter"],
+      tags: [article.category],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.sub_headline || article.summary || undefined,
+      images: articleImage,
+    },
+    alternates: {
+      canonical: `/article/${article.slug}`,
+    }
+  };
 }
 
 export default async function ArticlePage({ params }: PageProps) {
@@ -18,10 +69,14 @@ export default async function ArticlePage({ params }: PageProps) {
     // 1. Fetch Article
     const article = await fetchArticleById(slug);
     
+    // Redirect logic: If user visited /article/123 (numeric ID), redirect to /article/actual-slug
+    if (article && /^\d+$/.test(slug) && article.slug !== slug) {
+         redirect(`/article/${article.slug}`);
+    }
+    
     if (!article) {
         return (
             <div className="min-h-screen bg-background text-foreground font-serif">
-                <Header />
                 <div className="container mx-auto px-4 py-20 text-center">
                     <h1 className="text-2xl font-bold">Article Not Found</h1>
                     <p>The article you are looking for does not exist.</p>
@@ -32,14 +87,17 @@ export default async function ArticlePage({ params }: PageProps) {
 
     // 2. Fetch Related & Sidebar Data
     const relatedNews = await fetchArticlesByCategory(article.category, 4);
-    const authorNews = await fetchArticlesByCategory(article.category, 4); // Proxy for author news for now
+    const authorNews = await fetchArticlesByCategory(article.category, 4); 
     const sidebarNews = await fetchLatestArticles(10);
     
+    // 3. Fetch Comments & User Session
+    const comments = await fetchComments(article.id);
+    const session = await auth();
+
     return (
         <div className="min-h-screen bg-background text-foreground font-serif">
+          <JsonLd article={article} />
           <ViewTracker articleId={article.id} />
-          <Header />
-          <BreakingTicker />
     
           <main className="container mx-auto px-4 py-8 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -49,6 +107,8 @@ export default async function ArticlePage({ params }: PageProps) {
                         article={article} 
                         relatedNews={relatedNews} 
                         authorNews={authorNews}
+                        comments={comments}
+                        currentUser={session?.user}
                      />
                 </div>
 
@@ -60,23 +120,13 @@ export default async function ArticlePage({ params }: PageProps) {
                         />
                         
                         {/* Advertisement 1 */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center min-h-[250px] mb-6 mt-8">
-                            <div className="text-center">
-                                <p className="text-gray-400 text-sm font-bold tracking-wider mb-2">বিজ্ঞাপন</p>
-                                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                                    <span className="text-gray-400 text-xs">Ad Space 1</span>
-                                </div>
-                            </div>
+                        <div className="mb-6 mt-8 flex justify-center">
+                             <AdSlot slotId="article-sidebar-1" format="rectangle" />
                         </div>
 
                         {/* Advertisement 2 */}
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center min-h-[250px]">
-                            <div className="text-center">
-                                <p className="text-gray-400 text-sm font-bold tracking-wider mb-2">বিজ্ঞাপন</p>
-                                <div className="w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                                    <span className="text-gray-400 text-xs">Ad Space 2</span>
-                                </div>
-                            </div>
+                        <div className="flex justify-center">
+                             <AdSlot slotId="article-sidebar-2" format="rectangle" />
                         </div>
                     </aside>
                 </div>

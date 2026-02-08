@@ -53,9 +53,22 @@ interface SidebarProps {
   seoDescription: string;
   setSeoDescription: (val: string) => void;
   canonicalUrl: string;
-  canonicalUrl: string;
   setCanonicalUrl: (val: string) => void;
   onGenerateSEO?: () => void;
+  isGeneratingAI?: boolean;
+
+  // Events
+  events: any[];
+  eventId: string;
+  setEventId: (val: string) => void;
+
+  // Publication
+  status: string;
+  setStatus: (val: string) => void;
+  publishedAt: string;
+  setPublishedAt: (val: string) => void;
+  scheduledAt: string;
+  setScheduledAt: (val: string) => void;
 }
 
 type Tab = 'publishing' | 'media' | 'details' | 'seo';
@@ -88,9 +101,18 @@ export default function Sidebar({
     seoDescription,
     setSeoDescription,
     canonicalUrl,
-    canonicalUrl,
     setCanonicalUrl,
-    onGenerateSEO
+    onGenerateSEO,
+    isGeneratingAI,
+    events,
+    eventId,
+    setEventId,
+    status,
+    setStatus,
+    publishedAt,
+    setPublishedAt,
+    scheduledAt,
+    setScheduledAt
 }: SidebarProps) {
   const [activeTab, setActiveTab] = useState<Tab>('publishing');
   
@@ -142,9 +164,26 @@ export default function Sidebar({
                                 </h3>
                                 <NewsTypeSelector value={newsType} onChange={setNewsType} />
                              </div>
+
+                             <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+                                <h3 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <Calendar size={14} /> Special Event
+                                </h3>
+                                <select 
+                                    value={eventId} 
+                                    onChange={(e) => setEventId(e.target.value)}
+                                    className="w-full p-3 bg-white border border-blue-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm text-blue-900"
+                                >
+                                    <option value="">None</option>
+                                    {events.map((event) => (
+                                        <option key={event.id} value={event.id}>
+                                            {event.title}
+                                        </option>
+                                    ))}
+                                </select>
+                             </div>
                         </div>
 
-                        <div className="md:col-span-4 space-y-6">
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
                                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Category</h3>
                                 <select 
@@ -153,30 +192,150 @@ export default function Sidebar({
                                     className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                                 >
                                     <option value="">Select Category...</option>
-                                    <option value="Politics">Politics / রাজনীতি</option>
-                                    <option value="Bangladesh">Bangladesh / সারাদেশ</option>
-                                    <option value="Capital">Capital / রাজধানী</option>
-                                    <option value="Crime">Crime / অপরাধ</option>
-                                    <option value="World">World / বিশ্ব</option>
-                                    <option value="Business">Business / বাণিজ্য</option>
-                                    <option value="Opinion">Opinion / মতামত</option>
-                                    <option value="Sports">Sports / খেলা</option>
-                                    <option value="Entertainment">Entertainment / বিনোদন</option>
-                                    <option value="Technology">Technology / প্রযুক্তি</option>
-                                    <option value="Education">Education / শিক্ষা</option>
-                                    <option value="Lifestyle">Lifestyle / জীবনযাপন</option>
-                                    <option value="Jobs">Jobs / চাকরি</option>
-                                    <option value="Dhaka">Dhaka / ঢাকা</option>
-                                    <option value="Chattogram">Chattogram / চট্টগ্রাম</option>
-                                    <option value="Rajshahi">Rajshahi / রাজশাহী</option>
-                                    <option value="Khulna">Khulna / খুলনা</option>
-                                    <option value="Barishal">Barishal / বরিশাল</option>
-                                    <option value="Sylhet">Sylhet / সিলেট</option>
-                                    <option value="Rangpur">Rangpur / রংপুর</option>
-                                    <option value="Mymensingh">Mymensingh / ময়মনসিংহ</option>
+                                    
+                                    {/* খেলা (Sports) */}
+                                    <optgroup label="খেলা (Sports)">
+                                        <option value="খেলা">খেলা (Parent)</option>
+                                        <option value="ক্রিকেট">ক্রিকেট</option>
+                                        <option value="ফুটবল">ফুটবল</option>
+                                        <option value="টেনিস">টেনিস</option>
+                                        <option value="গলফ">গলফ</option>
+                                        <option value="ব্যাডমিন্টন">ব্যাডমিন্টন</option>
+                                        <option value="বিবিধ">বিবিধ</option>
+                                    </optgroup>
+                                    
+                                    {/* বিনোদন (Entertainment) */}
+                                    <optgroup label="বিনোদন (Entertainment)">
+                                        <option value="বিনোদন">বিনোদন (Parent)</option>
+                                        <option value="বলিউড">বলিউড</option>
+                                        <option value="হলিউড">হলিউড</option>
+                                        <option value="ঢালিউড">ঢালিউড</option>
+                                        <option value="টেলিভিশন">টেলিভিশন</option>
+                                        <option value="মিউজিক">মিউজিক</option>
+                                        <option value="ওটিটি">ওটিটি</option>
+                                    </optgroup>
+                                    
+                                    {/* রাজনীতি (Politics) */}
+                                    <optgroup label="রাজনীতি (Politics)">
+                                        <option value="রাজনীতি">রাজনীতি (Parent)</option>
+                                        <option value="আওয়ামী লীগ">আওয়ামী লীগ</option>
+                                        <option value="বিএনপি">বিএনপি</option>
+                                        <option value="জাতীয় পার্টি">জাতীয় পার্টি</option>
+                                        <option value="নির্বাচন">নির্বাচন</option>
+                                    </optgroup>
+
+                                    <div className="bg-amber-50 p-5 rounded-xl border border-amber-100 mt-6">
+                                        <h3 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <Clock size={14} /> Scheduling & Status
+                                        </h3>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-amber-800 uppercase mb-1">Status</label>
+                                                <select 
+                                                    value={status}
+                                                    onChange={(e) => setStatus(e.target.value)}
+                                                    className="w-full p-2 bg-white border border-amber-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
+                                                >
+                                                    <option value="draft">Draft</option>
+                                                    <option value="published">Published</option>
+                                                    <option value="scheduled">Scheduled</option>
+                                                    <option value="archived">Archived</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-amber-800 uppercase mb-1">Publication Date</label>
+                                                <input 
+                                                    type="datetime-local"
+                                                    value={publishedAt}
+                                                    onChange={(e) => setPublishedAt(e.target.value)}
+                                                    className="w-full p-2 bg-white border border-amber-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* অর্থনীতি (Economics) */}
+                                    <optgroup label="অর্থনীতি (Economics)">
+                                        <option value="অর্থনীতি">অর্থনীতি (Parent)</option>
+                                        <option value="শিল্প-বাণিজ্য">শিল্প-বাণিজ্য</option>
+                                        <option value="শেয়ারবাজার">শেয়ারবাজার</option>
+                                        <option value="ব্যাংক-বীমা">ব্যাংক-বীমা</option>
+                                        <option value="বাজেট">বাজেট</option>
+                                    </optgroup>
+                                    
+                                    {/* বিশ্ব (World) */}
+                                    <optgroup label="বিশ্ব (World)">
+                                        <option value="বিশ্ব">বিশ্ব (Parent)</option>
+                                        <option value="ইউরোপ">ইউরোপ</option>
+                                        <option value="আমেরিকা">আমেরিকা</option>
+                                        <option value="মধ্যপ্রাচ্য">মধ্যপ্রাচ্য</option>
+                                        <option value="যুদ্ধ-সংঘাত">যুদ্ধ-সংঘাত</option>
+                                    </optgroup>
+                                    
+                                    {/* প্রযুক্তি (Technology) */}
+                                    <optgroup label="প্রযুক্তি (Technology)">
+                                        <option value="প্রযুক্তি">প্রযুক্তি (Parent)</option>
+                                        <option value="গ্যাজেট">গ্যাজেট</option>
+                                        <option value="সোশ্যাল মিডিয়া">সোশ্যাল মিডিয়া</option>
+                                        <option value="আইটি খাত">আইটি খাত</option>
+                                        <option value="বিজ্ঞান">বিজ্ঞান</option>
+                                    </optgroup>
+                                    
+                                    {/* জীবনযাপন (Lifestyle) */}
+                                    <optgroup label="জীবনযাপন (Lifestyle)">
+                                        <option value="জীবনযাপন">জীবনযাপন (Parent)</option>
+                                        <option value="ফ্যাশন">ফ্যাশন</option>
+                                        <option value="খাবার">খাবার</option>
+                                        <option value="ভ্রমণ">ভ্রমণ</option>
+                                        <option value="স্বাস্থ্য টিপস">স্বাস্থ্য টিপস</option>
+                                    </optgroup>
+                                    
+                                    {/* শিক্ষা (Education) */}
+                                    <optgroup label="শিক্ষা (Education)">
+                                        <option value="শিক্ষা">শিক্ষা (Parent)</option>
+                                        <option value="ক্যাম্পাস">ক্যাম্পাস</option>
+                                        <option value="ভর্তি">ভর্তি</option>
+                                        <option value="পরীক্ষা ও ফল">পরীক্ষা ও ফল</option>
+                                        <option value="বৃত্তি">বৃত্তি</option>
+                                    </optgroup>
+                                    
+                                    {/* অপরাধ (Crime) */}
+                                    <optgroup label="অপরাধ (Crime)">
+                                        <option value="অপরাধ">অপরাধ (Parent)</option>
+                                        <option value="খুন">খুন</option>
+                                        <option value="দুর্নীতি">দুর্নীতি</option>
+                                        <option value="ধর্ষণ">ধর্ষণ</option>
+                                        <option value="আদালত">আদালত</option>
+                                    </optgroup>
+                                    
+                                    {/* রাজধানী (Capital) */}
+                                    <optgroup label="রাজধানী (Capital)">
+                                        <option value="রাজধানী">রাজধানী (Parent)</option>
+                                        <option value="উত্তর সিটি">উত্তর সিটি</option>
+                                        <option value="দক্ষিণ সিটি">দক্ষিণ সিটি</option>
+                                        <option value="যানজট">যানজট</option>
+                                    </optgroup>
+                                    
+                                    {/* বাংলাদেশ (Bangladesh) */}
+                                    <optgroup label="বাংলাদেশ (Bangladesh)">
+                                        <option value="বাংলাদেশ">বাংলাদেশ (Parent)</option>
+                                        <option value="আইন ও বিচার">আইন ও বিচার</option>
+                                        <option value="স্বাস্থ্য">স্বাস্থ্য</option>
+                                        <option value="কৃষি">কৃষি</option>
+                                        <option value="পরিবেশ">পরিবেশ</option>
+                                    </optgroup>
+                                    
+                                    {/* মতামত (Opinion) */}
+                                    <optgroup label="মতামত (Opinion)">
+                                        <option value="মতামত">মতামত (Parent)</option>
+                                        <option value="সাক্ষাৎকার">সাক্ষাৎকার</option>
+                                        <option value="চতুরঙ্গ">চতুরঙ্গ</option>
+                                        <option value="মুক্তমঞ্চ">মুক্তমঞ্চ</option>
+                                        <option value="সম্পাদকীয়">সম্পাদকীয়</option>
+                                    </optgroup>
                                 </select>
                             </div>
-                        </div>
 
                         <div className="md:col-span-4 space-y-6">
                             <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
@@ -262,6 +421,7 @@ export default function Sidebar({
                                 canonicalUrl={canonicalUrl}
                                 onCanonicalUrlChange={setCanonicalUrl}
                                 onGenerateSEO={onGenerateSEO}
+                                isGenerating={isGeneratingAI}
                             />
                         </div>
                         
@@ -277,7 +437,7 @@ export default function Sidebar({
                                   placeholder="Add keywords..."
                                 />
                                 <div className="mt-4 p-4 bg-white/60 rounded-lg text-xs text-blue-800 leading-relaxed">
-                                    <strong>Why Keywords?</strong> Although Google doesn't strictly use meta keywords for ranking, they can be helpful for other search engines and internal tagging systems.
+                                    <strong>Why Keywords?</strong> Although Google doesn&apos;t strictly use meta keywords for ranking, they can be helpful for other search engines and internal tagging systems.
                                 </div>
                             </div>
                         </div>

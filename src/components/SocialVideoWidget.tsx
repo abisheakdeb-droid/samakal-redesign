@@ -3,12 +3,21 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Facebook, Youtube, PlayCircle } from 'lucide-react';
-import { useVideoPlayer } from '@/contexts/VideoPlayerContext';
+import { useVideoPlayer, VideoData } from '@/contexts/VideoPlayerContext';
 import { useEffect, useState } from 'react';
 import { fetchSettings, SiteSettings } from '@/lib/actions-settings';
 
 export default function SocialVideoWidget() {
-  const { playVideo } = useVideoPlayer();
+  // Safely get video player context - don't crash if provider is missing
+  let playVideo: ((video: VideoData) => void) | null = null;
+  try {
+    const context = useVideoPlayer();
+    playVideo = context.playVideo;
+  } catch {
+    // VideoPlayerProvider not available - videos will open in new tabs
+    playVideo = null;
+  }
+  
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
@@ -28,10 +37,15 @@ export default function SocialVideoWidget() {
   ];
 
   const handleVideoClick = (video: typeof ytVideos[0]) => {
+    if (!playVideo) {
+      // Fallback: open YouTube in new tab if video player not available
+      window.open(`https://www.youtube.com/watch?v=${video.id}`, '_blank');
+      return;
+    }
     playVideo({
       id: video.id,
       title: video.title,
-      source: 'youtube',
+      source: 'youtube' as const,
       url: video.id,
       thumbnail: video.thumb,
     });
@@ -52,17 +66,23 @@ export default function SocialVideoWidget() {
                 আরও দেখুন →
             </Link>
             </div>
-            <div className="p-6 bg-gradient-to-br from-blue-50 to-white">
+            <div className="p-6 bg-linear-to-br from-blue-50 to-white">
             {/* Live Stream */}
             <div 
                 className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4 group cursor-pointer"
-                onClick={() => playVideo({
+                onClick={() => {
+                  if (!playVideo) {
+                    window.open(`https://www.facebook.com/${fbUrl}`, '_blank');
+                    return;
+                  }
+                  playVideo({
                     id: fbUrl,
                     title: 'সমকাল লাইভ: বিশেষ সংবাদ বুলেটিন',
-                    source: 'facebook',
+                    source: 'facebook' as const,
                     url: fbUrl,
                     thumbnail: 'https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop'
-                })}
+                  });
+                }}
             >
                 <Image 
                     src="https://images.unsplash.com/photo-1517048430219-bd3cbda4784b?w=600&auto=format&fit=crop"
@@ -103,7 +123,7 @@ export default function SocialVideoWidget() {
                  onClick={() => handleVideoClick(video)}
                  className="w-full flex gap-3 p-3 hover:bg-red-50 transition group text-left"
               >
-                 <div className="relative w-28 aspect-video flex-shrink-0 rounded overflow-hidden bg-gray-900">
+                 <div className="relative w-28 aspect-video shrink-0 rounded overflow-hidden bg-gray-900">
                     <Image 
                        src={video.thumb}
                        alt={video.title}

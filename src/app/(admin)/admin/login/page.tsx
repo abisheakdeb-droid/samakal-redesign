@@ -40,7 +40,7 @@ export default function LoginPage() {
                 fill
                 className="object-cover opacity-40 mix-blend-overlay"
              />
-             <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
+             <div className="absolute inset-0 bg-linear-to-t from-gray-900 to-transparent" />
         </div>
         
         <div className="relative z-10 space-y-4">

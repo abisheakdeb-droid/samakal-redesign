@@ -32,6 +32,27 @@ export const CATEGORY_BENGALI_MAP: Record<string, string> = {
   
   // Default
   'Uncategorized': 'অন্যান্য',
+
+  // Niche & Sub-categories (Samakal Specials)
+  'Chaturanga': 'চতুরঙ্গ',
+  'Womens Day': 'নারী দিবস',
+  'Expat': 'প্রবাস',
+  'Feature': 'ফিচার',
+  'Special Samakal': 'বিশেষ সমকাল',
+  'Industry Trade': 'শিল্প-বাণিজ্য',
+  'Interview': 'সাক্ষাৎকার',
+  'Priyo Chattogram': 'প্রিয় চট্টগ্রাম',
+  'Kaler Kheya': 'কালের খেয়া',
+  'Stock Market': 'শেয়ারবাজার',
+  'Investigation': 'সমকাল অনুসন্ধান',
+  'Offbeat': 'অফবিট',
+  'Archive': 'আর্কাইভ',
+  'Shilpamancha': 'শিল্পমঞ্চ',
+  'Special Arrangement': 'বিশেষ আয়োজন',
+  'Life Struggle': 'জীবন সংগ্রাম',
+  'Travel': 'ভ্রমণ',
+  'Literature Culture': 'সাহিত্য ও সংস্কৃতি',
+  'Pictures': 'ছবি',
 };
 
 /**

@@ -1,14 +1,16 @@
-
 import Link from "next/link";
 import Image from "next/image";
-import Header from "@/components/Header";
-import BreakingTicker from "@/components/BreakingTicker";
-import Sidebar from "@/components/Sidebar";
 import LatestSidebarWidget from "@/components/LatestSidebarWidget";
-import { localizeTime } from "@/utils/bn";
+import MostReadWidget from "@/components/MostReadWidget";
+import { localizeTime, toBanglaDigits } from "@/utils/bn";
 import { clsx } from "clsx";
-import { fetchArticlesByCategory, fetchLatestArticles } from "@/lib/actions-article";
-import { CATEGORY_MAP } from "@/data/mockNews";
+import { fetchArticlesByCategory, fetchLatestArticles, fetchMostReadArticles } from "@/lib/actions-article";
+import { CATEGORY_MAP } from "@/config/categories";
+import { SUB_CATEGORIES } from "@/config/sub-categories";
+import SubCategoryNav from "@/components/Category/SubCategoryNav";
+import InfiniteLatestNews from "@/components/InfiniteLatestNews";
+
+import { isSubcategory } from '@/config/sub-categories';
 
 interface PageProps {
     params: Promise<{ slug: string }>;
@@ -16,25 +18,34 @@ interface PageProps {
 
 export default async function CategoryPage({ params }: PageProps) {
   const resolvedParams = await params;
-  const slug = resolvedParams.slug || "latest";
+  const rawSlug = resolvedParams.slug || "latest";
+  const slug = decodeURIComponent(rawSlug);
   const categoryLabel = CATEGORY_MAP[slug] || (slug === "latest" ? "সর্বশেষ সংবাদ" : slug);
+  
+  // Determine if this is a parent or subcategory
+  const isSubcat = isSubcategory(slug);
 
   // --- DATA FETCHING ---
   let newsItems = [];
   
+  // Get Bengali category name for database query
+  const categoryForQuery = CATEGORY_MAP[slug] || slug;
+  
   if (slug === "latest") {
       newsItems = await fetchLatestArticles(20);
   } else {
-      newsItems = await fetchArticlesByCategory(slug === "latest" ? "politics" : slug, 20); 
-      // Note: If slug is mapped to a different DB value, handle here. 
-      // Assuming slug matches DB category or we rely on ILIKE matching.
-      // Actually fetchArticlesByCategory uses ILIKE, so "politics" matches "Politics".
+      // Pass isParentCategory flag: true if parent, false if subcategory
+      newsItems = await fetchArticlesByCategory(
+        categoryForQuery, 
+        20,
+        !isSubcat // true for parent, false for subcategory
+      );
   }
   
   // Sidebar Data
-  const sidebarOpinion = await fetchArticlesByCategory("opinion", 10);
+  const sidebarOpinion = await fetchArticlesByCategory(CATEGORY_MAP["opinion"], 10);
   const sidebarLatest = await fetchLatestArticles(10);
-  const sidebarPolitics = await fetchArticlesByCategory("politics", 10);
+  const sidebarMostRead = await fetchMostReadArticles(5);
 
 
   // --- LAYOUT LOGIC ---
@@ -43,12 +54,18 @@ export default async function CategoryPage({ params }: PageProps) {
   if (!newsItems || newsItems.length === 0) {
       return (
         <div className="min-h-screen bg-background text-foreground font-serif">
-            <Header />
-            <BreakingTicker />
-            <main className="container mx-auto px-4 py-20 text-center">
-                <h1 className="text-3xl font-bold mb-4 capitalize">{categoryLabel}</h1>
-                <p>এই মুহূর্তে কোনো খবর পাওয়া যায়নি।</p> 
-                 <Link href="/" className="text-brand-red underline mt-4 block">হোম পেজে ফিরে যান</Link>
+            <main className="container mx-auto px-4 py-8 max-w-7xl flex flex-col items-center justify-center min-h-[50vh] text-center text-gray-500">
+                <div className="flex justify-center mb-6">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-newspaper">
+                      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+                      <path d="M18 14h-8"/>
+                      <path d="M15 18h-5"/>
+                      <path d="M10 6h8v4h-8V6Z"/>
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold mb-2 capitalize">{categoryLabel}</h1>
+                <p className="text-lg">এই বিভাগে কোন নিউজ খুঁজে পাওয়া যাচ্ছে না</p> 
+                <Link href="/" className="text-brand-red font-medium underline mt-6 block hover:text-red-700 transition">হোম পেজে ফিরে যান</Link>
             </main>
         </div>
       )
@@ -67,13 +84,17 @@ export default async function CategoryPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-serif">
-      <Header />
-      <BreakingTicker />
+      
+      {/* Show subcategory nav ONLY if this is a parent category (not a subcategory itself) */}
+      {!isSubcat && SUB_CATEGORIES[slug] && (
+          <SubCategoryNav subCategories={SUB_CATEGORIES[slug]} />
+      )}
+
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="flex items-center gap-3 mb-8 border-b border-gray-200 pb-4">
            <span className="w-1.5 h-8 bg-brand-red rounded-full"></span>
            <h1 className="text-3xl font-bold text-gray-900 capitalize">{categoryLabel}</h1>
-           <span className="text-gray-400 text-sm mt-2 ml-auto">মোট {newsItems.length}টি সংবাদ</span>
+           <span className="text-gray-400 text-sm ml-auto">{toBanglaDigits(newsItems.length)}টি সংবাদ</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -91,7 +112,7 @@ export default async function CategoryPage({ params }: PageProps) {
                     <div className="lg:col-span-4 flex flex-col pl-0 lg:pl-8 mt-6 lg:mt-0">
                         {primeMedium.map((news, idx) => (
                             <Link key={news.id} href={`/article/${news.id}`} className={clsx(
-                                "group block flex flex-row lg:flex-col gap-4",
+                                "group flex flex-row lg:flex-col gap-4",
                                 idx === 0 && "border-b border-gray-200 pb-6 mb-6"
                             )}>
                                 <div className="w-1/3 lg:w-full aspect-video relative overflow-hidden rounded-lg shrink-0">
@@ -126,36 +147,50 @@ export default async function CategoryPage({ params }: PageProps) {
                 </section>
                 )}
 
-                {/* Level 4: List */}
-                <section className="flex flex-col gap-6">
-                    {listNews.map(news => (
-                        <Link key={news.id} href={`/article/${news.id}`} className="group flex flex-col md:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 items-start">
-                             <div className="w-full md:w-64 aspect-video md:aspect-[4/3] relative overflow-hidden rounded-lg shrink-0">
-                                <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-800 group-hover:text-brand-red mb-2">{news.title}</h3>
-                                <p className="text-gray-600 line-clamp-2 md:line-clamp-3 mb-3 text-sm md:text-base">{news.summary}</p>
-                                <span className="text-xs text-gray-400">{localizeTime(news.time)}</span>
-                            </div>
-                        </Link>
-                    ))}
-                </section>
-                
-                <div className="mt-12 text-center">
-                   <button className="px-8 py-3 bg-gray-100 text-gray-800 font-bold rounded-full hover:bg-brand-red hover:text-white transition">
-                     আরও সংবাদ দেখুন
-                   </button>
-                </div>
+
+                {/* Level 4: List - Use Infinite Scroll for Latest page */}
+                {slug === "latest" ? (
+                  <InfiniteLatestNews initialNews={listNews} />
+                ) : (
+                  <>
+                    <section className="flex flex-col gap-6">
+                        {listNews.map(news => (
+                            <Link key={news.id} href={`/article/${news.id}`} className="group flex flex-col md:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 items-start">
+                                 <div className="w-full md:w-64 aspect-video md:aspect-4/3 relative overflow-hidden rounded-lg shrink-0">
+                                    <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-brand-red mb-2">{news.title}</h3>
+                                    <p className="text-gray-600 line-clamp-2 md:line-clamp-3 mb-3 text-sm md:text-base">{news.summary}</p>
+                                    <span className="text-xs text-gray-400">{localizeTime(news.time)}</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </section>
+                    
+                    <div className="mt-12 text-center">
+                       <button className="px-8 py-3 bg-gray-100 text-gray-800 font-bold rounded-full hover:bg-brand-red hover:text-white transition">
+                         আরও সংবাদ দেখুন
+                       </button>
+                    </div>
+                  </>
+                )}
             </div>
 
             {/* Sidebar */}
             {/* Sidebar - Latest News Widget + Ads */}
             <div className="lg:col-span-3">
                  <aside className="sticky bottom-4">
-                        <LatestSidebarWidget 
-                            news={sidebarLatest} 
-                        />
+                        {slug === 'latest' ? (
+                            <MostReadWidget 
+                                opinionNews={sidebarOpinion} 
+                                mostReadNews={sidebarMostRead} 
+                            />
+                        ) : (
+                            <LatestSidebarWidget 
+                                news={sidebarLatest} 
+                            />
+                        )}
                         
                         {/* Advertisement 1 */}
                         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center min-h-[250px] mb-6 mt-8">

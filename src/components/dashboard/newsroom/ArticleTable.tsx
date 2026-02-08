@@ -1,6 +1,7 @@
 "use client";
 
 import { Eye, Edit3, Trash2, Search, Filter } from "lucide-react";
+import Link from "next/link";
 import StatusBadge from "./StatusBadge";
 import Image from "next/image";
 
@@ -72,7 +73,7 @@ export default function ArticleTable({ articles }: ArticleTableProps) {
                    <tr key={article.id} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="p-4">
                          <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-8 rounded overflow-hidden bg-gray-200 flex-shrink-0">
+                            <div className="relative w-12 h-8 rounded overflow-hidden bg-gray-200 shrink-0">
                                <Image 
                                  src={article.image || '/placeholder.svg'} 
                                  alt={article.title} 
@@ -97,9 +98,9 @@ export default function ArticleTable({ articles }: ArticleTableProps) {
                             <button className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-blue-600" title="Preview">
                                <Eye size={16} />
                             </button>
-                            <button className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-green-600" title="Edit">
+                            <Link href={`/admin/dashboard/articles/${article.id}`} className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-green-600" title="Edit">
                                <Edit3 size={16} />
-                            </button>
+                            </Link>
                              <button 
                                 onClick={() => handleDelete(article.id)}
                                 className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600" 

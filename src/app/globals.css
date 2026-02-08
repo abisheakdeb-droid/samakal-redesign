@@ -4,6 +4,8 @@
 
 @theme {
   --font-serif: var(--font-tiro-bangla), serif;
+  --font-sans:
+    var(--font-tiro-bangla), sans-serif; /* Force sans to use Tiro too if needed or keep standard */
 
   --color-brand-red: #f59e0b;
   --color-brand-orange: #f59e0b;
@@ -186,3 +188,30 @@ div.ProseMirror table .selectedCell:after {
   outline: 0px solid transparent;
 }
 
+/* Article Content Alignment - Override any inline styles from editor AND Tailwind prose */
+.article-content.prose p,
+.article-content.prose div,
+.article-content div[dangerously-set-inner-html] p,
+.article-content div[dangerously-set-inner-html] div,
+.article-content > div p,
+.article-content > div div {
+  text-align: justify !important;
+}
+
+/* Center align headings for better aesthetics */
+.article-content.prose h1,
+.article-content.prose h2,
+.article-content.prose h3,
+.article-content > div h1,
+.article-content > div h2,
+.article-content > div h3 {
+  text-align: center !important;
+}
+
+/* Ensure lists don't get justified */
+.article-content.prose ul,
+.article-content.prose ol,
+.article-content > div ul,
+.article-content > div ol {
+  text-align: left !important;
+}

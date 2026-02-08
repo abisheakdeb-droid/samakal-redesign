@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Facebook, Twitter, Youtube, Instagram, Linkedin, ArrowUp, Send } from "lucide-react";
+import { Facebook, Twitter, Youtube, Instagram, Linkedin, ArrowUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "clsx";
+import { SiteSettings } from "@/lib/actions-settings";
 
-export default function Footer() {
+interface FooterProps {
+  settings?: SiteSettings;
+}
+
+export default function Footer({ settings }: FooterProps) {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
@@ -26,14 +31,14 @@ export default function Footer() {
   };
 
   const footerLinks = [
-    { title: "বিশেষ আয়োজন", url: "#" },
-    { title: "ফিচার", url: "#" },
-    { title: "কালের খেয়া", url: "#" },
-    { title: "আর্কাইভ", url: "#" },
-    { title: "ফেসবুক লাইভ", url: "#" },
-    { title: "ছবি", url: "#" },
-    { title: "ভিডিও", url: "#" },
-    { title: "ই-পেপার", url: "#" },
+    { title: "বিশেষ আয়োজন", url: "/category/special-arrangement" },
+    { title: "ফিচার", url: "/category/feature" },
+    { title: "কালের খেয়া", url: "/category/kaler-kheya" },
+    { title: "আর্কাইভ", url: "/archive" },
+    { title: "ফেসবুক লাইভ", url: "https://facebook.com/samakalofficial" },
+    { title: "ছবি", url: "/photo" },
+    { title: "ভিডিও", url: "/video" },
+    { title: "ই-পেপার", url: "https://epaper.samakal.com" },
   ];
 
   return (
@@ -78,7 +83,9 @@ export default function Footer() {
             {/* Brand & Editor Info (Left - 5 Cols) */}
             <div className="md:col-span-5 space-y-8">
                 <div>
-                   <h2 className="text-5xl font-bold mb-6 text-white tracking-tight">সমকাল</h2>
+                   <h2 className="text-5xl font-bold mb-6 text-white tracking-tight">
+                     {settings?.site_name || "সমকাল"}
+                   </h2>
                    <div className="space-y-3 text-gray-300 leading-relaxed md:pr-12 border-l-2 border-brand-red pl-6">
                       <p>সম্পাদক : <strong>শাহেদ মুহাম্মদ আলী</strong></p>
                       <p>প্রকাশক : <strong>আবুল কালাম আজাদ</strong></p>
@@ -109,14 +116,14 @@ export default function Footer() {
             <div className="md:col-span-3">
                 <h4 className="text-lg font-bold text-brand-red mb-6 uppercase tracking-wider">অন্যান্য</h4>
                 <div className="flex flex-col gap-3">
-                   <Link href="#" className="text-gray-300 hover:text-white transition">Privacy Policy</Link>
-                   <Link href="#" className="text-gray-300 hover:text-white transition">Terms of Use</Link>
-                   <Link href="#" className="text-gray-300 hover:text-white transition">Contact Us</Link>
+                   <Link href="#" className="text-gray-300 hover:text-white transition">গোপনীয়তা নীতি</Link>
+                   <Link href="#" className="text-gray-300 hover:text-white transition">ব্যবহারের শর্তাবলী</Link>
+                   <Link href="#" className="text-gray-300 hover:text-white transition">যোগাযোগ</Link>
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-white/10">
                     <p className="text-xs text-gray-500 text-center md:text-left">
-                        © ২০০৫ - ২০২৬ সমকাল<br/>সর্বস্বত্ব ® সংরক্ষিত
+                        {settings?.footer_copyright || `© ২০০৫ - ${new Date().getFullYear()} ${settings?.site_name || "সমকাল"}`}<br/>সর্বস্বত্ব ® সংরক্ষিত
                     </p>
                 </div>
             </div>

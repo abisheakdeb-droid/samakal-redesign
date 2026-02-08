@@ -411,6 +411,10 @@ npm run type-check   # Run TypeScript compiler
 Create a `.env.local` file:
 
 ```env
+# Google Gemini AI (Required for AI features)
+# Get your free key from: https://makersuite.google.com/app/apikey
+GEMINI_API_KEY=your_gemini_api_key_here
+
 # Optional: Add your Google AdSense Publisher ID
 NEXT_PUBLIC_ADSENSE_ID=ca-pub-XXXXXXXXXX
 

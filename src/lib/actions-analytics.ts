@@ -21,11 +21,25 @@ export async function fetchAnalyticsOverview() {
     `;
     const totalDrafts = parseInt(draftResult.rows[0].count);
 
+    // 5. Active Readers (24h) - Unique users who viewed articles
+    const activeUsersResult = await sql`
+        SELECT COUNT(DISTINCT user_id) 
+        FROM reading_history 
+        WHERE viewed_at > NOW() - INTERVAL '24 hours'
+    `;
+    const activeUsers24h = parseInt(activeUsersResult.rows[0].count);
+
+    // 6. Total History Records (Total reads tracked)
+    const historyCountResult = await sql`SELECT COUNT(*) FROM reading_history`;
+    const totalHistoryRecords = parseInt(historyCountResult.rows[0].count);
+
     return {
       totalArticles,
       totalViews,
       avgViews,
-      totalDrafts
+      totalDrafts,
+      activeUsers24h,
+      totalHistoryRecords
     };
   } catch (error) {
     console.error('Database Error:', error);
@@ -33,7 +47,9 @@ export async function fetchAnalyticsOverview() {
       totalArticles: 0,
       totalViews: 0,
       avgViews: 0,
-      totalDrafts: 0
+      totalDrafts: 0,
+      activeUsers24h: 0,
+      totalHistoryRecords: 0
     };
   }
 }

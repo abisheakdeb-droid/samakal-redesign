@@ -20,10 +20,9 @@ import { createArticle } from '@/lib/actions-article';
 import Sidebar from './Sidebar';
 import { Toolbar } from './Toolbar';
 import { NewsType } from './types';
-import { Save, Monitor, FileText, Settings, Clock, Sparkles } from 'lucide-react';
+import { Save, Monitor, Settings, Clock, Sparkles } from 'lucide-react';
 import { useAI } from '@/hooks/use-ai';
-import { generateHeadlines } from '@/lib/ai/writing-assistant';
-import { AIToolbar } from './AIToolbar';
+import { generateHeadlines, generateMetaDescription } from '@/lib/ai/writing-assistant';
 
 export function Editor() {
   const [title, setTitle] = useState('');
@@ -59,7 +58,37 @@ export function Editor() {
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [canonicalUrl, setCanonicalUrl] = useState('');
+  
+  // Events (Placeholder for now)
+  const [eventId, setEventId] = useState('');
+  const [events, setEvents] = useState<any[]>([]);
 
+  // Publication State
+  const [status, setStatus] = useState('draft');
+  const [publishedAt, setPublishedAt] = useState(new Date().toISOString().slice(0, 16));
+  const [scheduledAt, setScheduledAt] = useState('');
+
+  const handleGenerateSEO = async () => {
+    if (!editor || !title) {
+        toast.error('SEO জেনারেট করার জন্য শিরোনাম এবং কন্টেন্ট প্রয়োজন');
+        return;
+    }
+    const content = editor.getText();
+    if (content.length < 100) {
+         toast.error('আরও কন্টেন্ট লিখুন');
+         return;
+    }
+
+    await generate(
+        'Generating SEO Meta Description...',
+        () => generateMetaDescription(title, content),
+        (desc) => {
+            setSeoDescription(desc);
+            toast.success('মেটা বর্ণনা তৈরি হয়েছে!');
+        }
+    );
+  };
+ 
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -131,8 +160,10 @@ export function Editor() {
     formData.append('title', title);
     formData.append('slug', slug);
     formData.append('content', content);
-    formData.append('status', metadata.status);
+    formData.append('status', metadata.status || status);
     formData.append('category', category || 'General');
+    formData.append('published_at', publishedAt);
+    formData.append('scheduled_at', scheduledAt);
     
     // Core Metadata
     formData.append('sub_headline', subHeadline);
@@ -269,6 +300,17 @@ export function Editor() {
                     setSeoDescription={setSeoDescription}
                     canonicalUrl={canonicalUrl}
                     setCanonicalUrl={setCanonicalUrl}
+                    onGenerateSEO={handleGenerateSEO}
+                    isGeneratingAI={isGenerating}
+                    events={events}
+                    eventId={eventId}
+                    setEventId={setEventId}
+                    status={status}
+                    setStatus={setStatus}
+                    publishedAt={publishedAt}
+                    setPublishedAt={setPublishedAt}
+                    scheduledAt={scheduledAt}
+                    setScheduledAt={setScheduledAt}
                />
            </div>
        )}
@@ -306,7 +348,7 @@ export function Editor() {
                 
                 {/* AI Headline Suggestions */}
                 {/* Headline Generator Button */}
-                <div className="absolute top-[3.5rem] right-12 md:right-20">
+                <div className="absolute top-14 right-12 md:right-20">
                      <button
                         onClick={handleGenerateHeadlines}
                         disabled={isGenerating}

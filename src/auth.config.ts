@@ -9,9 +9,13 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user;
       const isOnAdmin = nextUrl.pathname.startsWith('/admin');
       
-      // We handle redirect logic in middleware.ts
-      // This config is just shared types/setup
-      return true; 
+      if (isOnAdmin) {
+        if (isLoggedIn) return true;
+        return false; // Redirect unauthenticated users to login page
+      } else if (isLoggedIn) {
+        return Response.redirect(new URL('/admin/dashboard', nextUrl));
+      }
+      return true;
     },
   },
   providers: [], // Providers added in auth.ts

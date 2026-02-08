@@ -54,14 +54,14 @@ export async function testGeminiConnection(): Promise<boolean> {
 export async function getAICompletion(
   prompt: string,
   options: {
-    model?: 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-2.5-flash' | 'gemini-2.5-pro';
+    model?: 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-1.5-flash';
     systemInstruction?: string;
     temperature?: number;
     maxTokens?: number;
   } = {}
 ): Promise<string> {
   const {
-    model = 'gemini-3-flash-preview', // Use latest Gemini 3 Flash for best performance
+    model = 'gemini-3-flash-preview', // Use Gemini 3 Flash for better performance
     systemInstruction,
     temperature = 0.7,
     maxTokens = 1000,
@@ -148,7 +148,7 @@ export async function* getAICompletionStream(
  * @returns Cost in USD
  */
 export function calculateAICost(
-  model: 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-2.5-flash' | 'gemini-2.5-pro',
+  model: 'gemini-3-pro-preview' | 'gemini-3-flash-preview' | 'gemini-2.5-flash' | 'gemini-2.5-pro' | 'gemini-1.5-flash',
   tokens: number
 ): number {
   // Gemini pricing (as of 2026)
@@ -157,6 +157,7 @@ export function calculateAICost(
     'gemini-3-flash-preview': 0, // FREE during preview
     'gemini-2.5-pro': 0.00125 / 1000, // $0.00125 per 1K characters (input)
     'gemini-2.5-flash': 0, // FREE up to rate limit
+    'gemini-1.5-flash': 0, // FREE
   };
 
   return tokens * (pricing[model] || 0);

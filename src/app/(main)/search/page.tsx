@@ -1,75 +1,190 @@
+import { fetchArticlesBySearch } from '@/lib/actions-article';
+import Link from 'next/link';
+import Image from 'next/image';
+import { localizeTime } from '@/utils/bn';
+import { CATEGORY_MAP } from '@/config/categories';
+import { ChevronDown } from 'lucide-react';
 
-import Link from "next/link";
-import Image from "next/image";
-import Header from "@/components/Header";
-import BreakingTicker from "@/components/BreakingTicker";
-import LatestSidebarWidget from "@/components/LatestSidebarWidget";
-import { localizeTime } from "@/utils/bn";
-import { searchArticles, fetchLatestArticles } from "@/lib/actions-article";
-
-interface PageProps {
-    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
-
-export default async function SearchPage({ searchParams }: PageProps) {
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; category?: string; date?: string; sort?: string }>;
+}) {
   const resolvedSearchParams = await searchParams;
-  const query = (resolvedSearchParams.q as string) || "";
-  
-  // Fetch Results
-  const searchResults = query ? await searchArticles(query) : [];
-  const sidebarLatest = await fetchLatestArticles(10);
+  const query = resolvedSearchParams.q || '';
+  const category = resolvedSearchParams.category || 'all';
+  const dateRange = resolvedSearchParams.date || 'all';
+  const sort = resolvedSearchParams.sort || 'newest';
+
+  if (!query) {
+    return (
+        <div className="min-h-[50vh] flex flex-col items-center justify-center text-center px-4">
+            <h1 className="text-3xl font-bold text-gray-300 mb-4">অনুসন্ধান করুন</h1>
+            <p className="text-gray-500">খবর খুঁজতে উপরের সার্চ বার ব্যবহার করুন</p>
+        </div>
+    );
+  }
+
+  const results = await fetchArticlesBySearch({
+    query,
+    category,
+    dateRange,
+    sort,
+    limit: 50
+  });
+
+  // Helper to highlight text
+  const HighlightText = ({ text, highlight }: { text: string; highlight: string }) => {
+      if (!highlight.trim()) return <>{text}</>;
+      const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+      return (
+          <>
+            {parts.map((part, i) => 
+                part.toLowerCase() === highlight.toLowerCase() ? (
+                    <mark key={i} className="bg-yellow-200 text-gray-900 px-0.5 rounded-sm">{part}</mark>
+                ) : (
+                    part
+                )
+            )}
+          </>
+      );
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-serif">
-      <Header />
-      <BreakingTicker />
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center gap-3 mb-8 border-b border-gray-200 pb-4">
-           {/* Search Icon or Header */}
-           <h1 className="text-3xl font-bold text-gray-900">
-             অনুসন্ধান ফলাফল: <span className="text-brand-red">"{query}"</span>
-           </h1>
-           <span className="text-gray-400 text-sm mt-2 ml-auto">মোট {searchResults.length}টি ফলাফল</span>
-        </div>
+    <div className="container mx-auto px-4 py-8 md:py-12 max-w-7xl">
+        <div className="flex flex-col md:flex-row gap-8">
+            
+            {/* Left Sidebar: Filters */}
+            <aside className="w-full md:w-64 shrink-0 space-y-8">
+                <div>
+                     <h3 className="font-bold text-gray-900 border-b pb-2 mb-4">ফিল্টার</h3>
+                     
+                     {/* Date Filter */}
+                     <div className="mb-6">
+                         <h4 className="text-sm font-semibold text-gray-500 uppercase mb-3">সময়</h4>
+                         <div className="space-y-2">
+                             {[
+                                 { id: 'all', label: 'সব সময়' },
+                                 { id: 'today', label: 'আজকের' },
+                                 { id: 'week', label: 'গত ৭ দিন' },
+                                 { id: 'month', label: 'গত ১ মাস' },
+                             ].map(opt => (
+                                 <Link 
+                                    key={opt.id}
+                                    href={`/search?q=${query}&category=${category}&date=${opt.id}&sort=${sort}`}
+                                    className={`block text-sm ${dateRange === opt.id ? 'text-brand-red font-bold' : 'text-gray-600 hover:text-brand-red'}`}
+                                 >
+                                    {opt.label}
+                                 </Link>
+                             ))}
+                         </div>
+                     </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-9">
-                
-                {searchResults.length === 0 ? (
-                    <div className="text-center py-20 bg-gray-50 rounded-xl">
-                        <h2 className="text-xl font-bold text-gray-600 mb-2">দুঃখিত, কোনো ফলাফল পাওয়া যায়নি</h2>
-                        <p className="text-gray-500">অন্য কোনো কিওয়ার্ড দিয়ে চেষ্টা করুন</p>
+                     {/* Category Filter */}
+                     <div>
+                         <h4 className="text-sm font-semibold text-gray-500 uppercase mb-3">বিভাগ</h4>
+                         <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+                             <Link 
+                                href={`/search?q=${query}&category=all&date=${dateRange}&sort=${sort}`}
+                                className={`block text-sm ${category === 'all' ? 'text-brand-red font-bold' : 'text-gray-600 hover:text-brand-red'}`}
+                             >
+                                সব বিভাগ
+                             </Link>
+                             {['politics', 'bangladesh', 'sports', 'entertainment', 'economics', 'international', 'technology'].map(cat => (
+                                 <Link 
+                                    key={cat}
+                                    href={`/search?q=${query}&category=${CATEGORY_MAP[cat] || cat}&date=${dateRange}&sort=${sort}`}
+                                    className={`block text-sm ${category === (CATEGORY_MAP[cat] || cat) ? 'text-brand-red font-bold' : 'text-gray-600 hover:text-brand-red'}`}
+                                 >
+                                    {CATEGORY_MAP[cat]}
+                                 </Link>
+                             ))}
+                         </div>
+                     </div>
+                </div>
+            </aside>
+
+            {/* Main Content: Results */}
+            <main className="flex-1">
+                <div className="mb-6 pb-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            &quot;{query}&quot; - এর জন্য ফলাফল
+                        </h1>
+                        <p className="text-gray-500 mt-1">
+                            {results.length} টি সংবাদ পাওয়া গেছে
+                        </p>
                     </div>
-                ) : (
-                    <section className="flex flex-col gap-6">
-                        {searchResults.map(news => (
-                            <Link key={news.id} href={`/article/${news.id}`} className="group flex flex-col md:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 items-start">
-                                <div className="w-full md:w-64 aspect-video md:aspect-[4/3] relative overflow-hidden rounded-lg shrink-0">
-                                    <Image src={news.image} alt={news.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500"/>
+
+                    {/* Sorting Dropdown */}
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">সাজান:</span>
+                        <div className="relative group">
+                            <button className="flex items-center gap-2 text-sm font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition">
+                                {sort === 'newest' ? 'সর্বশেষ' : 'প্রাসঙ্গিকতা'}
+                                <ChevronDown size={14} />
+                            </button>
+                            <div className="absolute right-0 top-full mt-2 w-32 bg-white border border-gray-100 shadow-xl rounded-lg overflow-hidden hidden group-hover:block z-20">
+                                <Link 
+                                    href={`/search?q=${query}&category=${category}&date=${dateRange}&sort=newest`}
+                                    className={`block px-4 py-2 text-sm hover:bg-gray-50 ${sort === 'newest' ? 'text-brand-red font-bold' : 'text-gray-700'}`}
+                                >
+                                    সর্বশেষ
+                                </Link>
+                                <Link 
+                                    href={`/search?q=${query}&category=${category}&date=${dateRange}&sort=relevance`}
+                                    className={`block px-4 py-2 text-sm hover:bg-gray-50 ${sort === 'relevance' ? 'text-brand-red font-bold' : 'text-gray-700'}`}
+                                >
+                                    প্রাসঙ্গিকতা
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {results.length > 0 ? (
+                    <div className="space-y-8">
+                        {results.map(article => (
+                            <Link 
+                                key={article.id}
+                                href={`/article/${article.id}`}
+                                className="group flex flex-col md:flex-row gap-4 md:gap-6"
+                            >
+                                <div className="w-full md:w-56 aspect-4/3 relative overflow-hidden rounded-lg bg-gray-100 shrink-0">
+                                    <Image 
+                                        src={article.image}
+                                        alt={article.title}
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
                                 </div>
-                                <div>
-                                    <span className="text-brand-red text-xs font-bold mb-1 block">{news.category}</span>
-                                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-brand-red mb-2">{news.title}</h3>
-                                    <p className="text-gray-600 line-clamp-2 md:line-clamp-3 mb-3 text-sm md:text-base">{news.summary}</p>
-                                    <span className="text-xs text-gray-400">{localizeTime(news.time)}</span>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs font-bold text-brand-red uppercase">
+                                            {CATEGORY_MAP[article.category] || article.category}
+                                        </span>
+                                        <span className="text-xs text-gray-400">
+                                            {localizeTime(article.time)}
+                                        </span>
+                                    </div>
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 group-hover:text-brand-red leading-tight mb-2">
+                                        <HighlightText text={article.title} highlight={query} />
+                                    </h2>
+                                    <p className="text-gray-600 text-sm md:text-base line-clamp-2 md:line-clamp-3">
+                                        <HighlightText text={article.summary || ''} highlight={query} />
+                                    </p>
                                 </div>
                             </Link>
                         ))}
-                    </section>
+                    </div>
+                ) : (
+                    <div className="bg-gray-50 rounded-xl p-12 text-center">
+                        <p className="text-xl text-gray-500 mb-2">দুঃখিত, কোনো খবর পাওয়া যায়নি</p>
+                        <p className="text-sm text-gray-400">বানান সঠিক কিনা যাচাই করুন অথবা অন্য শব্দ দিয়ে খুঁজুন</p>
+                    </div>
                 )}
-
-            </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-3">
-                 <aside className="sticky bottom-4">
-                        <LatestSidebarWidget 
-                            news={sidebarLatest} 
-                        />
-                </aside>
-            </div>
+            </main>
         </div>
-      </main>
     </div>
   );
 }

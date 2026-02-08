@@ -1,6 +1,6 @@
 "use client";
 
-import { NewsItem } from "@/data/mockNews";
+import { NewsItem } from "@/types/news";
 import MostReadWidget from '@/components/MostReadWidget';
 import SocialVideoWidget from '@/components/SocialVideoWidget';
 import AdSlot from '@/components/AdSlot';

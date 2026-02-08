@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { NewsItem } from '@/data/mockNews';
+import { NewsItem } from "@/types/news";
 
 interface MostReadWidgetProps {
   opinionNews: NewsItem[];
@@ -12,10 +12,7 @@ interface MostReadWidgetProps {
 }
 
 // Bangla number converter
-const toBn = (num: number): string => {
-  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  return num.toString().split('').map(d => bnDigits[parseInt(d)]).join('');
-};
+import { toBanglaDigits } from "@/utils/bn";
 
 // Get consistent profileauthor image IDs from Unsplash
 const getAuthorImageId = (index: number): string => {
@@ -73,7 +70,7 @@ export default function MostReadWidget({ opinionNews, mostReadNews, hideOpinion 
           >
             {/* Number Counter or Author Image */}
             {activeTab === 'opinion' ? (
-               <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative flex-shrink-0 border border-gray-100 mt-1">
+               <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden relative shrink-0 border border-gray-100 mt-1">
                    {/* Author profile images from Unsplash */}
                    <Image 
                       src={`https://images.unsplash.com/photo-${getAuthorImageId(index)}?w=100&h=100&fit=crop&crop=faces`} 
@@ -83,8 +80,8 @@ export default function MostReadWidget({ opinionNews, mostReadNews, hideOpinion 
                    />
                </div>
             ) : (
-                <span className="text-3xl font-bold text-gray-200 group-hover:text-brand-red/20 transition-colors -mt-1 w-8 flex-shrink-0 text-center">
-                  {toBn(index + 1)}
+                <span className="text-3xl font-bold text-gray-200 group-hover:text-brand-red/20 transition-colors -mt-1 w-8 shrink-0 text-center">
+                  {toBanglaDigits(index + 1)}
                 </span>
             )}
             

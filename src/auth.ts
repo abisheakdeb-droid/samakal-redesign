@@ -31,11 +31,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Demo access bypass
           if (password === 'password') {
              const role = email.toLowerCase().includes('journalist') ? 'editor' : 'admin';
+             
+             // Try to fetch the real user to use their valid UUID
+             const realUser = await getUser(email);
+
              return {
-                id: 'demo-user',
-                name: role === 'admin' ? 'Master Admin' : 'Journalist',
+                id: realUser?.id || 'demo-user',
+                name: realUser?.name || (role === 'admin' ? 'Master Admin' : 'Journalist'),
                 email: email,
-                role: role,
+                role: realUser?.role || role,
              };
           }
 
@@ -54,17 +58,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async session({ session, token }) {
       if (token?.sub && session.user) {
-        // @ts-ignore
         session.user.role = token.role as string;
-        // @ts-ignore
         session.user.id = token.sub;
+        session.user.createdAt = token.createdAt as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        // @ts-ignore
         token.role = user.role;
+        token.createdAt = user.createdAt;
       }
       return token;
     }

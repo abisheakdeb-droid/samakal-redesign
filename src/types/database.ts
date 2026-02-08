@@ -21,6 +21,11 @@ export interface ArticleRow {
   source?: string;
   source_url?: string;
   author?: string;
+  event_id?: string;
+  is_featured?: boolean;
+  is_prime?: boolean;
+  published_at?: string;
+  scheduled_at?: string;
   [key: string]: unknown; // Allow additional properties from SQL queries
 }
 

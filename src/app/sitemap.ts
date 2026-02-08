@@ -1,49 +1,45 @@
-import { MetadataRoute } from 'next'
-import { CATEGORY_MAP } from '@/data/mockNews'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://samakal.com' // Replace with actual domain
-  
-  // Static routes
-  const staticRoutes: MetadataRoute.Sitemap = [
+import { MetadataRoute } from 'next';
+import { sql } from '@/lib/db';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.samakal.com';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const articles = await sql`
+        SELECT slug, updated_at, created_at 
+        FROM articles 
+        WHERE status = 'published' 
+        ORDER BY created_at DESC 
+        LIMIT 5000
+    `;
+
+  const articleEntries: MetadataRoute.Sitemap = articles.rows.map((article) => ({
+    url: `${BASE_URL}/article/${article.slug}`,
+    lastModified: new Date(article.updated_at || article.created_at),
+    changeFrequency: 'daily',
+    priority: 0.7,
+  }));
+
+  return [
     {
-      url: baseUrl,
+      url: BASE_URL,
       lastModified: new Date(),
       changeFrequency: 'hourly',
       priority: 1,
     },
     {
-      url: `${baseUrl}/video`,
+      url: `${BASE_URL}/category/latest`,
       lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
+      changeFrequency: 'hourly',
+      priority: 0.9,
     },
-    {
-      url: `${baseUrl}/photo`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-  ]
-
-  // Category routes
-  const categoryRoutes: MetadataRoute.Sitemap = Object.keys(CATEGORY_MAP).map((slug) => ({
-    url: `${baseUrl}/category/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'hourly' as const,
-    priority: 0.9,
-  }))
-
-  // Article routes (mock - generate sample articles)
-  // In production, this should fetch from your CMS/database
-  const articleRoutes: MetadataRoute.Sitemap = Object.keys(CATEGORY_MAP).flatMap((category) =>
-    Array.from({ length: 20 }, (_, i) => ({
-      url: `${baseUrl}/article/${category}-${i}`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }))
-  )
-
-  return [...staticRoutes, ...categoryRoutes, ...articleRoutes]
+    // Add static category pages
+    ...['politics', 'bangladesh', 'sports', 'entertainment', 'business'].map((cat) => ({
+        url: `${BASE_URL}/category/${cat}`,
+        lastModified: new Date(),
+        changeFrequency: 'hourly' as const,
+        priority: 0.8,
+    })),
+    ...articleEntries,
+  ];
 }

@@ -12,7 +12,6 @@ export function toBanglaDigits(str: string | number): string {
 
 export function localizeTime(timeStr: string): string {
     // Converts "3 hours ago" -> "৩ ঘণ্টা আগে"
-    // Converts "30 mins ago" -> "৩০ মিনিট আগে"
     const localized = timeStr
         .replace("hours ago", "ঘণ্টা আগে")
         .replace("hour ago", "ঘণ্টা আগে")
@@ -23,4 +22,47 @@ export function localizeTime(timeStr: string): string {
         .replace("Just now", "মাত্র");
 
     return toBanglaDigits(localized);
+}
+
+// New robust formatter for ISO dates
+export function formatRelativeTime(dateString: string): string {
+    if (!dateString) return "";
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    // If future or invalid, return formatted date
+    if (isNaN(diffInSeconds) || diffInSeconds < 0) {
+        return formatDateBangla(date);
+    }
+
+    // Less than 24 hours (86400 seconds)
+    if (diffInSeconds < 86400) {
+        if (diffInSeconds < 60) {
+            return "মাত্র";
+        }
+        const minutes = Math.floor(diffInSeconds / 60);
+        if (minutes < 60) {
+            return `${toBanglaDigits(minutes)} মিনিট আগে`;
+        }
+        const hours = Math.floor(minutes / 60);
+        return `${toBanglaDigits(hours)} ঘণ্টা আগে`;
+    }
+
+    // More than 24 hours, return Date
+    return formatDateBangla(date);
+}
+
+export function formatDateBangla(date: Date): string {
+    const months = [
+        "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+        "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+    ];
+    
+    const day = toBanglaDigits(date.getDate());
+    const month = months[date.getMonth()];
+    const year = toBanglaDigits(date.getFullYear());
+    
+    return `${day} ${month} ${year}`;
 }

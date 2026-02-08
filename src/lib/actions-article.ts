@@ -1,29 +1,34 @@
 "use server";
 
 import { sql } from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { ArticleRow, ArticleImageRow, ArticleContributorRow, ArticleSEOData, ExtraArticleData } from "@/types/database";
 import { getBengaliCategory } from "@/utils/category";
-
+import { normalizeCategory } from "@/utils/normalize-category";
+import { mapArticleToNewsItem } from "@/lib/actions-article-helpers";
 const ArticleSchema = z.object({
   id: z.string(),
   title: z.string().min(1, "Title is required"),
   slug: z.string().min(1, "Slug is required"),
   content: z.string().optional(),
-  status: z.enum(["draft", "published", "archived"]),
+  status: z.enum(["draft", "published", "archived", "scheduled"]),
   category: z.string().optional(),
   image: z.string().optional(),
   author_id: z.string().optional(),
   views: z.number().optional(),
   date: z.string().optional(), // For UI display purposes
+  published_at: z.string().optional(),
+  scheduled_at: z.string().optional(),
   // Phase 1: Core Metadata
   sub_headline: z.string().optional(),
   news_type: z.enum(["breaking", "regular", "feature", "opinion", "photo_story"]).optional(),
   location: z.string().optional(),
   keywords: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
+  event_id: z.string().optional(),
   // Phase 2: Media Enhancement
   video_url: z.string().optional(),
   video_thumbnail: z.string().optional(),
@@ -37,50 +42,55 @@ const ArticleSchema = z.object({
 
 const CreateArticle = ArticleSchema.omit({ id: true, date: true, views: true, author_id: true });
 
-export async function fetchArticles(query?: string) {
-  try {
-    const data = await sql`
-      SELECT 
-        articles.id,
-        articles.title,
-        articles.slug,
-        articles.status,
-        articles.category,
-        articles.views,
-        articles.image,
-        articles.created_at,
-        users.name as author
-      FROM articles
-      LEFT JOIN users ON articles.author_id = users.id
-      WHERE 
-        articles.title ILIKE ${`%${query || ''}%`} OR
-        articles.category ILIKE ${`%${query || ''}%`}
-      ORDER BY articles.created_at DESC
-      LIMIT 10
-    `;
+export const fetchArticles = cache(
+  unstable_cache(
+    async (query?: string) => {
+      try {
+        const data = await sql`
+          SELECT 
+            articles.id,
+            articles.title,
+            articles.slug,
+            articles.status,
+            articles.category,
+            articles.views,
+            articles.image,
+            articles.created_at,
+            users.name as author
+          FROM articles
+          LEFT JOIN users ON articles.author_id = users.id
+          WHERE 
+            articles.title ILIKE ${`%${query || ''}%`} OR
+            articles.category ILIKE ${`%${query || ''}%`}
+          ORDER BY articles.created_at DESC
+          LIMIT 10
+        `;
 
-    return data.rows.map(article => ({
-      id: article.id,
-      title: article.title,
-      slug: article.slug,
-      status: article.status,
-      category: article.category,
-      image: article.image,
-      created_at: article.created_at,
-      author: article.author,
-      views: article.views || 0,
-       // Format date for UI
-      date: new Date(article.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-    }));
-  } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch articles.');
-  }
-}
+        return data.rows.map(article => ({
+          id: article.id,
+          title: article.title,
+          slug: article.slug,
+          status: article.status,
+          category: article.category,
+          image: article.image,
+          created_at: article.created_at,
+          author: article.author,
+          views: article.views || 0,
+          date: new Date(article.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          })
+        }));
+      } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to fetch articles.');
+      }
+    },
+    ['articles-list'],
+    { revalidate: 60, tags: ['articles'] }
+  )
+);
 
 export async function fetchArticleById(id: string) {
     try {
@@ -112,6 +122,31 @@ export async function fetchArticleById(id: string) {
               FROM articles
               LEFT JOIN users ON articles.author_id = users.id
               WHERE articles.id = ${id}
+            `;
+        } else if (/^\d+$/.test(id)) {
+             // Numeric ID check
+             dataWithAuthor = await sql`
+              SELECT 
+                articles.id,
+                articles.title,
+                articles.slug,
+                articles.status,
+                articles.category,
+                articles.views,
+                articles.image,
+                articles.created_at,
+                articles.content,
+                articles.sub_headline,
+                articles.news_type,
+                articles.location,
+                articles.video_url,
+                articles.video_thumbnail,
+                articles.source,
+                articles.source_url,
+                users.name as author
+              FROM articles
+              LEFT JOIN users ON articles.author_id = users.id
+              WHERE articles.public_id = ${parseInt(id)}
             `;
         } else {
              dataWithAuthor = await sql`
@@ -158,6 +193,7 @@ export async function fetchArticleById(id: string) {
         });
     } catch (error) {
         console.error('Database Error:', error);
+        // logError('fetchArticleById', error);
         throw new Error('Failed to fetch article.');
     }
 }
@@ -165,31 +201,165 @@ export async function fetchArticleById(id: string) {
 
 // PUBLIC FETCH FUNCTIONS
 
-export async function fetchLatestArticles(limit: number = 10) {
+export const fetchLatestArticles = cache(
+  unstable_cache(
+    async (limit: number = 10) => {
+      try {
+        const data = await sql`
+          SELECT 
+            articles.id,
+            articles.title,
+            articles.slug,
+            articles.status,
+            articles.category,
+            articles.views,
+            articles.image,
+            articles.created_at,
+            articles.content,
+            articles.sub_headline,
+            articles.news_type,
+            articles.location,
+            articles.video_url,
+            users.name as author
+          FROM articles
+          LEFT JOIN users ON articles.author_id = users.id
+          WHERE articles.status = 'published' AND articles.published_at <= NOW()
+          ORDER BY articles.published_at DESC
+          LIMIT ${limit}
+        `;
+
+        return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+      } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+      }
+    },
+    ['latest-articles'],
+    { revalidate: 60, tags: ['articles', 'latest'] }
+  )
+);
+
+export const fetchArticlesByCategory = cache(
+  unstable_cache(
+    async (
+      category: string, 
+      limit: number = 10,
+      isParentCategory: boolean = false
+    ) => {
+      try {
+        const normalizedCategory = normalizeCategory(category);
+        
+        let data;
+        
+        if (isParentCategory) {
+          data = await sql`
+            SELECT 
+              articles.id, articles.title, articles.slug, articles.status,
+              articles.category, articles.parent_category, articles.views,
+              articles.image, articles.created_at, articles.content,
+              articles.sub_headline, articles.news_type, articles.location,
+              articles.video_url, users.name as author
+            FROM articles
+            LEFT JOIN users ON articles.author_id = users.id
+            WHERE 
+              articles.status = 'published' AND
+              articles.published_at <= NOW() AND
+              (articles.parent_category = ${normalizedCategory} OR articles.category = ${normalizedCategory})
+            ORDER BY articles.published_at DESC
+            LIMIT ${limit}
+          `;
+        } else {
+          data = await sql`
+            SELECT 
+              articles.id, articles.title, articles.slug, articles.status,
+              articles.category, articles.parent_category, articles.views,
+              articles.image, articles.created_at, articles.content,
+              articles.sub_headline, articles.news_type, articles.location,
+              articles.video_url, users.name as author
+            FROM articles
+            LEFT JOIN users ON articles.author_id = users.id
+            WHERE 
+              articles.status = 'published' AND
+              articles.published_at <= NOW() AND
+              articles.category ILIKE ${normalizedCategory}
+            ORDER BY articles.published_at DESC
+            LIMIT ${limit}
+          `;
+        }
+    
+        return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+      } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+      }
+    },
+    ['articles-by-category'],
+    { revalidate: 60, tags: ['articles'] }
+  )
+);
+
+export const fetchFeaturedArticles = cache(
+  unstable_cache(
+    async (limit: number = 6) => {
+      try {
+        const data = await sql`
+          SELECT 
+            articles.id,
+            articles.title,
+            articles.slug,
+            articles.status,
+            articles.category,
+            articles.views,
+            articles.image,
+            articles.created_at,
+            articles.content,
+            articles.sub_headline,
+            articles.news_type,
+            articles.location,
+            articles.video_url,
+            articles.is_featured,
+            articles.is_prime,
+            users.name as author
+          FROM articles
+          LEFT JOIN users ON articles.author_id = users.id
+          WHERE 
+              articles.status = 'published' AND
+              articles.published_at <= NOW() AND
+              articles.is_featured = true
+          ORDER BY articles.published_at DESC
+          LIMIT ${limit}
+        `;
+    
+        return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+      } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+      }
+    },
+    ['featured-articles'],
+    { revalidate: 60, tags: ['articles', 'featured'] }
+  )
+);
+
+export async function fetchArticlesWithPagination(
+  offset: number = 0,
+  limit: number = 20
+) {
   try {
     const data = await sql`
       SELECT 
-        articles.id,
-        articles.title,
-        articles.slug,
-        articles.status,
-        articles.category,
-        articles.views,
-        articles.image,
-        articles.created_at,
-        articles.content,
-        articles.sub_headline,
-        articles.news_type,
-        articles.location,
-        articles.video_url,
+        articles.id, articles.title, articles.slug, articles.category,
+        articles.parent_category, articles.views, articles.image, 
+        articles.created_at, articles.content, articles.sub_headline,
         users.name as author
       FROM articles
       LEFT JOIN users ON articles.author_id = users.id
       WHERE articles.status = 'published'
       ORDER BY articles.created_at DESC
       LIMIT ${limit}
+      OFFSET ${offset}
     `;
-
+    
     return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
   } catch (error) {
     console.error('Database Error:', error);
@@ -197,39 +367,38 @@ export async function fetchLatestArticles(limit: number = 10) {
   }
 }
 
-export async function fetchArticlesByCategory(category: string, limit: number = 6) {
-    try {
-      const data = await sql`
-        SELECT 
-          articles.id,
-          articles.title,
-          articles.slug,
-          articles.status,
-          articles.category,
-          articles.views,
-          articles.image,
-          articles.created_at,
-          articles.content,
-          articles.sub_headline,
-          articles.news_type,
-          articles.location,
-          articles.video_url,
-          users.name as author
-        FROM articles
-        LEFT JOIN users ON articles.author_id = users.id
-        WHERE 
-            articles.status = 'published' AND
-            articles.category ILIKE ${category}
-        ORDER BY articles.created_at DESC
-        LIMIT ${limit}
-      `;
-  
-      return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
-    } catch (error) {
-      console.error('Database Error:', error);
-      return [];
-    }
-  }
+export const fetchMostReadArticles = cache(
+  unstable_cache(
+    async (limit: number = 6) => {
+      try {
+        const data = await sql`
+          SELECT 
+            articles.id,
+            articles.title,
+            articles.slug,
+            articles.status,
+            articles.category,
+            articles.views,
+            articles.image,
+            articles.created_at,
+            users.name as author
+          FROM articles
+          LEFT JOIN users ON articles.author_id = users.id
+          WHERE articles.status = 'published'
+          ORDER BY COALESCE(articles.views, 0) DESC, articles.created_at DESC
+          LIMIT ${limit}
+        `;
+    
+        return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+      } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+      }
+    },
+    ['most-read-articles'],
+    { revalidate: 300, tags: ['articles', 'most-read'] }
+  )
+);
 
 export async function searchArticles(query: string) {
     try {
@@ -253,7 +422,11 @@ export async function searchArticles(query: string) {
         LEFT JOIN users ON articles.author_id = users.id
         WHERE 
             articles.status = 'published' AND
-            (articles.title ILIKE ${`%${query}%`} OR articles.content ILIKE ${`%${query}%`})
+            (
+                articles.title ILIKE ${`%${query}%`} OR 
+                articles.content ILIKE ${`%${query}%`} OR
+                (articles.public_id::text = ${query})
+            )
         ORDER BY articles.created_at DESC
         LIMIT 20
       `;
@@ -265,80 +438,175 @@ export async function searchArticles(query: string) {
     }
 }
 
-// Helper to map DB result to UI NewsItem shape
-function mapArticleToNewsItem(
-    article: ArticleRow, 
-    extraData: ExtraArticleData = {}
-) {
-    const dateObj = new Date(article.created_at);
-    
-    // Video Mapping
-    let relatedVideo = undefined;
-    if (article.video_url) {
-        const isYoutube = article.video_url.includes('youtube') || article.video_url.includes('youtu.be');
-        const isFacebook = article.video_url.includes('facebook');
+export async function suggestArticles(query: string) {
+    try {
+      if (!query || query.length < 2) return [];
+
+      const data = await sql`
+        SELECT 
+          articles.id,
+          articles.title,
+          articles.slug,
+          articles.category,
+          articles.image,
+          articles.created_at,
+          users.name as author
+        FROM articles
+        LEFT JOIN users ON articles.author_id = users.id
+        WHERE 
+            articles.status = 'published' AND
+            (articles.title ILIKE ${`%${query}%`} OR articles.slug ILIKE ${`%${query}%`})
+        ORDER BY articles.created_at DESC
+        LIMIT 6
+      `;
+  
+      return data.rows.map(row => ({
+          id: row.id,
+          title: row.title,
+          slug: row.slug,
+          category: getBengaliCategory(row.category),
+          author: row.author || 'Desk',
+          date: new Date(row.created_at).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' }),
+          image: row.image || '/placeholder.svg'
+      }));
+    } catch (error) {
+      console.error('Database Error:', error);
+      return [];
+    }
+}
+
+// Advanced Search Action
+export async function fetchArticlesBySearch({
+    query,
+    category,
+    dateRange, // 'today', 'week', 'month', 'all'
+    sort = 'newest', // 'relevance' | 'newest'
+    limit = 20,
+    offset = 0
+}: {
+    query: string;
+    category?: string;
+    dateRange?: string;
+    sort?: string;
+    limit?: number;
+    offset?: number;
+}) {
+    try {
+        const decodedQuery = decodeURIComponent(query);
+        const searchPattern = `%${decodedQuery}%`;
         
-        // Simple ID extraction (robust regex could be better)
-        let videoId = article.video_url; 
-        if (isYoutube) {
-             const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-             const match = article.video_url.match(regExp);
-             videoId = (match && match[2].length === 11) ? match[2] : videoId;
-        } else if (isFacebook) {
-             // Basic fallback for FB, usually full URL or ID extraction needed
-             // For now, passing ID/URL as is, assuming player handles it or needs update
+        // Date Filter Logic
+        let dateFilter = sql`AND 1=1`; // Default neutral
+        
+        if (dateRange === 'today') {
+            dateFilter = sql`AND articles.created_at >= NOW() - INTERVAL '24 HOURS'`;
+        } else if (dateRange === 'week') {
+            dateFilter = sql`AND articles.created_at >= NOW() - INTERVAL '7 DAYS'`;
+        } else if (dateRange === 'month') {
+            dateFilter = sql`AND articles.created_at >= NOW() - INTERVAL '30 DAYS'`;
         }
 
-        relatedVideo = {
-            id: videoId,
-            source: (isYoutube ? 'youtube' : 'facebook') as 'youtube' | 'facebook',
-            title: 'Related Video'
-        };
+        // Category Filter Logic
+        let categoryFilter = sql`AND 1=1`;
+        if (category && category !== 'all') {
+             // Check if it's a parent category to include children
+             // We can optimize this later, for now exact match or parent match
+             categoryFilter = sql`AND (articles.category = ${category} OR articles.parent_category = ${category})`;
+        }
+
+    const orderBy = offset === 0 && sort === 'relevance' 
+        ? sql`ORDER BY ts_rank(to_tsvector('english', articles.title || ' ' || articles.content), plainto_tsquery('english', ${decodedQuery})) DESC, articles.created_at DESC`
+        : sql`ORDER BY articles.created_at DESC`;
+
+    const data = await sql`
+        SELECT 
+            articles.id, articles.title, articles.slug, articles.category, articles.parent_category,
+            articles.views, articles.image, articles.created_at, articles.content, 
+            articles.sub_headline, users.name as author
+        FROM articles
+        LEFT JOIN users ON articles.author_id = users.id
+        WHERE 
+            articles.status = 'published'
+            AND (
+                articles.title ILIKE ${searchPattern} OR 
+                articles.sub_headline ILIKE ${searchPattern} OR
+                articles.content ILIKE ${searchPattern}
+            )
+            ${dateFilter}
+            ${categoryFilter}
+        ${orderBy}
+        LIMIT ${limit}
+        OFFSET ${offset}
+    `;
+
+        return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+    } catch (error) {
+        console.error('Search Error:', error);
+        return [];
     }
-
-    return {
-        id: article.id, // Using UUID as ID for routing
-        title: article.title,
-        sub_headline: article.sub_headline,
-        slug: article.slug,
-        image: article.image || '/placeholder.svg',
-        category: getBengaliCategory(article.category),
-        catSlug: (article.category || 'uncategorized').toLowerCase(),
-        author: article.author || 'Desk Report',
-        date: dateObj.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' }), // Bengali Date
-        time: getTimeAgo(dateObj),
-        summary: stripHtml(article.content || '').substring(0, 150) + '...', // Simple extract
-        content: article.content || '',
-        // New Fields
-        news_type: article.news_type,
-        location: article.location,
-        source: article.source,
-        sourceUrl: article.source_url,
-        tags: extraData.tags || [],
-        images: extraData.images?.map((img) => ({
-            id: img.id,
-            url: img.image_url,
-            caption: img.caption,
-            type: img.image_type
-        })),
-        contributors: extraData.contributors?.map((con) => ({
-             id: con.id,
-             name: con.display_name || 'Contributor', 
-             role: con.role
-        })),
-        relatedVideo: relatedVideo
-    };
 }
 
-function getTimeAgo(date: Date) {
-    const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000 / 60 / 60);
-    return diff < 1 ? 'এইমাত্র' : `${diff} ঘণ্টা আগে`;
+export async function fetchArticlesByEvent(eventId: string, limit: number = 6) {
+    try {
+      const data = await sql`
+        SELECT 
+          articles.id,
+          articles.title,
+          articles.slug,
+          articles.status,
+          articles.category,
+          articles.views,
+          articles.image,
+          articles.created_at,
+          users.name as author
+        FROM articles
+        LEFT JOIN users ON articles.author_id = users.id
+        WHERE 
+            articles.status = 'published' AND
+            articles.event_id = ${eventId}
+        ORDER BY articles.created_at DESC
+        LIMIT ${limit}
+      `;
+  
+      return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+    } catch (error) {
+      console.error('Database Error:', error);
+      return [];
+    }
 }
 
-function stripHtml(html: string) {
-   if (!html) return '';
-   return html.replace(/<[^>]*>?/gm, '');
+export async function fetchArticlesByDate(date: string) {
+    try {
+      // date expected format: YYYY-MM-DD
+      const data = await sql`
+        SELECT 
+          articles.id,
+          articles.title,
+          articles.slug,
+          articles.status,
+          articles.category,
+          articles.views,
+          articles.image,
+          articles.created_at,
+          articles.content,
+          articles.sub_headline,
+          users.name as author
+        FROM articles
+        LEFT JOIN users ON articles.author_id = users.id
+        WHERE 
+            articles.status = 'published' AND
+            articles.created_at::date = ${date}::date
+        ORDER BY articles.created_at DESC
+      `;
+  
+      return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+    } catch (error) {
+      console.error('Database Error:', error);
+      return [];
+    }
 }
+
+
 
 
 // Added Missing Helper 
@@ -409,10 +677,14 @@ export async function createArticle(formData: FormData) {
             ? `{${validatedKeywords.map(k => `"${k}"`).join(',')}}` 
             : null;
 
+        // **FIX: Determine parent_category from category**
+        const { getParentCategory } = await import('@/config/sub-categories');
+        const parentCategory = getParentCategory(category) || 'null';
+
         const result = await sql`
         INSERT INTO articles (
-            title, slug, content, status, category, image, author_id,
-            sub_headline, news_type, location, keywords
+            title, slug, content, status, category, parent_category, image, author_id,
+            sub_headline, news_type, location, keywords, event_id
         )
         VALUES (
             ${title}, 
@@ -420,12 +692,14 @@ export async function createArticle(formData: FormData) {
             ${content || ''}, 
             ${status}, 
             ${category || 'Uncategorized'}, 
+            ${parentCategory},
             ${image || ''}, 
             ${authorId},
             ${sub_headline || null},
             ${news_type || 'regular'},
             ${location || null},
-            ${keywordsArray}
+            ${keywordsArray},
+            ${validatedFields.data.event_id || null}
         )
         RETURNING id
         `;
@@ -453,7 +727,108 @@ export async function createArticle(formData: FormData) {
     redirect('/admin/dashboard/articles');
 }
 
+export async function updateArticle(formData: FormData) {
+    // Check Authentication
+    const session = await auth();
+    if (!session || !session.user) {
+        return { message: 'Unauthorized: You must be logged in to update articles.' };
+    }
+
+    const id = formData.get('id') as string;
+    if (!id) return { message: 'Missing Article ID' };
+
+    // Parse tags and keywords from JSON strings
+    const tagsRaw = formData.get('tags');
+    const keywordsRaw = formData.get('keywords');
+    
+    const tags = tagsRaw ? JSON.parse(tagsRaw as string) : [];
+    const keywords = keywordsRaw ? JSON.parse(keywordsRaw as string) : [];
+
+    // Validate form fields using Zod (reuse CreateArticle schema for now)
+    const validatedFields = CreateArticle.safeParse({
+        title: formData.get('title'),
+        slug: formData.get('slug'),
+        content: formData.get('content'),
+        status: formData.get('status'),
+        category: formData.get('category'),
+        image: formData.get('image'), // Base64 or URL
+        // Phase 1 metadata
+        sub_headline: formData.get('sub_headline'),
+        news_type: formData.get('news_type') || 'regular',
+        location: formData.get('location'),
+        keywords: keywords,
+        tags: tags,
+    });
+
+    if (!validatedFields.success) {
+        return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: 'Missing Fields. Failed to Update Article.',
+        };
+    }
+
+    const { 
+        title, slug, content, status, category, image, 
+        sub_headline, news_type, location, keywords: validatedKeywords, tags: validatedTags 
+    } = validatedFields.data;
+
+    try {
+        const keywordsArray = validatedKeywords && validatedKeywords.length > 0 
+            ? `{${validatedKeywords.map(k => `"${k}"`).join(',')}}` 
+            : null;
+
+        // **FIX: Update parent_category based on category**
+        const { getParentCategory } = await import('@/config/sub-categories');
+        const parentCategory = getParentCategory(category) || null;
+
+        await sql`
+        UPDATE articles SET
+            title = ${title},
+            slug = ${slug},
+            content = ${content || ''},
+            status = ${status},
+            category = ${category || 'Uncategorized'},
+            parent_category = ${parentCategory},
+            image = ${image || ''},
+            sub_headline = ${sub_headline || null},
+            news_type = ${news_type || 'regular'},
+            location = ${location || null},
+            keywords = ${keywordsArray},
+            event_id = ${validatedFields.data.event_id || null},
+            updated_at = NOW()
+        WHERE id = ${id}
+        `;
+
+        // Update tags
+        // First delete existing
+        await sql`DELETE FROM article_tags WHERE article_id = ${id}`;
+        
+        // Insert new tags
+        if (validatedTags && validatedTags.length > 0) {
+            for (const tag of validatedTags) {
+                await sql`
+                    INSERT INTO article_tags (article_id, tag)
+                    VALUES (${id}, ${tag})
+                `;
+            }
+        }
+
+    } catch (error) {
+        console.error('Database Error:', error);
+        return {
+            message: 'Database Error: Failed to Update Article.',
+        };
+    }
+
+    revalidatePath('/admin/dashboard/articles');
+    revalidatePath(`/admin/dashboard/articles/${id}`);
+    redirect('/admin/dashboard/articles');
+}
+
 export async function deleteArticle(id: string) {
+    const session = await auth();
+    if (!session?.user) return { message: 'Unauthorized' };
+
     try {
         await sql`DELETE FROM articles WHERE id = ${id}`;
         revalidatePath('/admin/dashboard/articles');
@@ -496,6 +871,9 @@ export async function fetchAllLocations(): Promise<string[]> {
 }
 
 export async function updateArticleTags(articleId: string, tags: string[]) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  
   try {
     // Delete existing tags
     await sql`DELETE FROM article_tags WHERE article_id = ${articleId}`;
@@ -527,6 +905,9 @@ export async function addArticleImage(
   photographer?: string,
   displayOrder: number = 0
 ) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`
       INSERT INTO article_images (article_id, image_url, image_type, caption, photographer, display_order)
@@ -555,6 +936,9 @@ export async function fetchArticleImages(articleId: string) {
 }
 
 export async function deleteArticleImage(imageId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`DELETE FROM article_images WHERE id = ${imageId}`;
     revalidatePath('/admin/dashboard/articles');
@@ -565,6 +949,9 @@ export async function deleteArticleImage(imageId: string) {
 }
 
 export async function reorderGalleryImages(articleId: string, imageIds: string[]) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     for (let i = 0; i < imageIds.length; i++) {
       await sql`
@@ -582,6 +969,9 @@ export async function reorderGalleryImages(articleId: string, imageIds: string[]
 }
 
 export async function updateArticleVideo(articleId: string, videoUrl: string, videoThumbnail?: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`
       UPDATE articles
@@ -605,6 +995,9 @@ export async function addArticleContributor(
   role: string = 'reporter',
   displayOrder: number = 0
 ) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`
       INSERT INTO article_contributors (article_id, contributor_id, custom_name, role, display_order)
@@ -642,6 +1035,9 @@ export async function fetchArticleContributors(articleId: string) {
 }
 
 export async function deleteArticleContributor(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`DELETE FROM article_contributors WHERE id = ${id}`;
     revalidatePath('/admin/dashboard/articles');
@@ -652,6 +1048,9 @@ export async function deleteArticleContributor(id: string) {
 }
 
 export async function updateArticleSEO(articleId: string, seoData: ArticleSEOData) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
   try {
     await sql`
       UPDATE articles
@@ -693,5 +1092,49 @@ export async function incrementArticleView(articleId: string) {
   } catch (error) {
     console.error('Database Error:', error);
     // Silent fail for view increments to not block UI
+  }
+}
+
+export async function getLastModifiedTimestamp() {
+    try {
+      const data = await sql`
+        SELECT created_at FROM articles 
+        WHERE status = 'published' 
+        ORDER BY created_at DESC 
+        LIMIT 1
+      `;
+      return data.rows.length > 0 ? new Date(data.rows[0].created_at).getTime() : 0;
+  } catch (error) {
+      // Return 0 on error effectively making the client think "no update" 
+      return 0;
+  }
+}
+
+export async function fetchArticlesByAuthor(authorId: string) {
+  try {
+      const data = await sql`
+        SELECT 
+          articles.id,
+          articles.title,
+          articles.slug,
+          articles.status,
+          articles.category,
+          articles.views,
+          articles.image,
+          articles.created_at,
+          articles.content,
+          users.name as author
+        FROM articles
+        LEFT JOIN users ON articles.author_id = users.id
+        WHERE 
+            articles.status = 'published' AND
+            articles.author_id = ${authorId}
+        ORDER BY articles.created_at DESC
+      `;
+  
+      return data.rows.map(row => mapArticleToNewsItem(row as ArticleRow));
+  } catch (error) {
+      console.error('Database Error:', error);
+      return [];
   }
 }

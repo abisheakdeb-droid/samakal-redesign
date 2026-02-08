@@ -6,8 +6,7 @@ import { Share2, Check } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
 import { generateBlurPlaceholder, unsplashLoader } from "@/utils/image";
-
-import { NewsItem } from "@/data/mockNews";
+import { NewsItem } from "@/types/news";
 
 interface HeroCardProps {
   news: NewsItem;
@@ -28,7 +27,7 @@ export default function HeroCard({ news }: HeroCardProps) {
 
   return (
     <Link href={`/article/${news.id}`} className="group cursor-pointer block">
-      <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl mb-4">
+      <div className="relative aspect-video w-full overflow-hidden rounded-xl mb-4">
         <Image 
           src={news.image} 
           alt={news.title}

@@ -1,7 +1,7 @@
-import { HEADLINES_DB } from "@/data/mockNews";
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { fetchSettings } from "@/lib/actions-settings";
+import { fetchLatestArticles } from "@/lib/actions-article";
 
 interface BreakingTickerProps {
   customTicker?: string | null;
@@ -20,13 +20,15 @@ export default async function BreakingTicker({ customTicker }: BreakingTickerPro
   const tickerText = settings.breaking_news_ticker || customTicker;
 
   // Logic to parse ticker items
-  const headlines = tickerText 
-    ? tickerText.split('|').map(t => t.trim()).filter(t => t.length > 0)
-    : [
-        ...(HEADLINES_DB.latest || []),
-        ...(HEADLINES_DB.politics || []),
-        ...(HEADLINES_DB.bangladesh || [])
-      ].slice(0, 10); 
+  let headlines: string[] = [];
+  
+  if (tickerText) {
+      headlines = tickerText.split('|').map(t => t.trim()).filter(t => t.length > 0);
+  } else {
+      // Fallback to latest headlines from DB
+      const latestNews = await fetchLatestArticles(10);
+      headlines = latestNews.map(item => item.title);
+  } 
 
   return (
     <div className="bg-orange-50 border-b border-orange-100 overflow-hidden">

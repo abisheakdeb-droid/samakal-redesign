@@ -102,3 +102,36 @@ export const BANGLADESH_LOCATIONS = [
   'মৌলভীবাজার',
   'সুনামগঞ্জ',
 ];
+
+export interface ArticleData {
+  id?: string;
+  title: string;
+  slug: string;
+  content: string;
+  status: 'draft' | 'published' | 'archived';
+  category: string;
+  image?: string;
+  created_at?: string;
+  updated_at?: string;
+  author_id?: string;
+  
+  // Phase 1 Metadata
+  sub_headline?: string;
+  news_type?: NewsType;
+  location?: string;
+  keywords?: string[];
+  tags?: string[];
+  event_id?: string;
+
+  // Phase 2 Media
+  video_url?: string;
+  images?: any[]; // specific type can be added later
+
+  // Phase 3 Attribution & SEO
+  contributors?: any[]; // specific type can be added later
+  source?: string;
+  source_url?: string;
+  seo_title?: string;
+  seo_description?: string;
+  canonical_url?: string;
+}

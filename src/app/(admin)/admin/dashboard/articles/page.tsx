@@ -4,8 +4,16 @@ import Link from "next/link";
 
 import { fetchArticles } from "@/lib/actions-article";
 
-export default async function ArticlesPage() {
-  const articles = await fetchArticles();
+export default async function ArticlesPage({
+  searchParams,
+}: {
+  searchParams?: {
+    query?: string;
+    page?: string;
+  };
+}) {
+  const query = searchParams?.query || '';
+  const articles = await fetchArticles(query);
 
   return (
     <div className="space-y-6">

@@ -1,5 +1,6 @@
 import { fetchAnalyticsOverview, fetchTopArticles, fetchCategoryStats } from "@/lib/actions-analytics";
-import { MoveUp, MoveDown, Minus } from "lucide-react";
+import { MoveUp, MoveDown, Minus, Users, BookOpen } from "lucide-react";
+import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 
 // Helper to convert English numbers to Bengali
 const toBengaliNumber = (num: number) => {
@@ -46,13 +47,13 @@ export default async function AnalyticsPage() {
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">ড্রাফট স্ট্যাটাস</h3>
-            <span className="text-gray-500 text-xs font-bold flex items-center gap-1">
-                <Minus size={12} />
+            <h3 className="text-sm font-medium text-gray-500">সক্রিয় পাঠক (Active Users)</h3>
+            <span className="text-blue-500 text-xs font-bold flex items-center gap-1">
+                <Users size={12} /> 24h
             </span>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{toBengaliNumber(overview.totalDrafts)}</p>
-          <p className="text-xs text-gray-400 mt-2">অপ্রকাশিত সংবাদ</p>
+          <p className="text-3xl font-bold text-gray-900">{toBengaliNumber(overview.activeUsers24h)}</p>
+          <p className="text-xs text-gray-400 mt-2">গত ২৪ ঘন্টায় লগইনে পাঠক</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -90,48 +91,51 @@ export default async function AnalyticsPage() {
       </div>
 
       {/* Traffic Sources & Categories */}
+      {/* Traffic Sources & Categories */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Placeholder for Traffic Sources (Need GA/Tracking for real data) */}
+        {/* User Engagement (Real Data) */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 relative overflow-hidden group">
              
-          <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center p-6 text-center backdrop-blur-sm opacity-100 transition-opacity">
-                <p className="text-gray-900 font-bold mb-2">বিস্তারিত ট্র্যাফিক রিপোর্ট</p>
-                <p className="text-sm text-gray-500 mb-4">ট্র্যাফিক সোর্স, বাউন্স রেট এবং বিস্তারিত তথ্যের জন্য Google Analytics ড্যাশবোর্ড দেখুন।</p>
-                <a 
-                    href="https://analytics.google.com/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-                >
-                    Google Analytics খুলুন
-                </a>
+          <div className="flex items-center justify-between mb-6">
+             <h2 className="text-lg font-bold text-gray-900">পাঠক এনগেজমেন্ট (Reader Engagement)</h2>
+             <BookOpen size={20} className="text-gray-400" />
           </div>
 
-          <h2 className="text-lg font-bold text-gray-900 mb-6">ট্র্যাফিক উৎস</h2>
-          <div className="space-y-4 filter blur-sm">
-            {[
-              { source: "সরাসরি", percentage: "45%", color: "bg-blue-500" },
-              { source: "সোশ্যাল মিডিয়া", percentage: "30%", color: "bg-purple-500" },
-              { source: "সার্চ ইঞ্জিন", percentage: "18%", color: "bg-green-500" },
-              { source: "রেফারেল", percentage: "7%", color: "bg-orange-500" },
-            ].map((item, idx) => (
-              <div key={idx}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">{item.source}</span>
-                  <span className="text-sm font-bold text-gray-900">{item.percentage}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div className={`${item.color} h-2 rounded-full`} style={{ width: item.percentage }}></div>
-                </div>
+          <div className="space-y-6">
+              <div>
+                  <div className="flex justify-between items-end mb-1">
+                      <span className="text-gray-500 text-sm">মোট পঠিত ইতিহাস রেকর্ড</span>
+                      <span className="text-2xl font-bold text-gray-900">{toBengaliNumber(overview.totalHistoryRecords)}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                       {/* Arbitrary progress bar for visual flair, assuming 10k goal */}
+                      <div className="bg-brand-red h-2 rounded-full" style={{ width: `${(overview.totalHistoryRecords / 1000) * 100}%` }}></div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">লগইন করা ব্যবহারকারীদের মোট পঠিত নিবন্ধ সংখ্যা</p>
               </div>
-            ))}
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <h4 className="font-bold text-gray-700 mb-2 text-sm">উপসংহার</h4>
+                  <p className="text-xs text-gray-500">
+                      আপনার নিবন্ধিত ব্যবহারকারীরা নিয়মিত ফিরে আসছেন। 
+                      {overview.activeUsers24h > 5 
+                        ? " গত ২৪ ঘন্টায় পাঠক সংখ্যা সন্তোষজনক।" 
+                        : " পাঠক সংখ্যা বাড়াতে আরও নিয়মিত সংবাদ প্রকাশ করুন।"}
+                  </p>
+              </div>
           </div>
         </div>
 
-        {/* Real Category Stats */}
+        {/* Real Category Stats with Chart */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-6">জনপ্রিয় বিভাগ (Popular Categories)</h2>
-          <div className="space-y-4">
+          
+          <div className="mb-6">
+             <AnalyticsChart data={categoryStats} />
+          </div>
+
+          <div className="space-y-4 max-h-[200px] overflow-y-auto custom-scrollbar">
             {categoryStats.length > 0 ? categoryStats.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between border-b border-gray-100 pb-4 last:border-0 hover:bg-gray-50 transition p-2 rounded-lg">
                 <div>

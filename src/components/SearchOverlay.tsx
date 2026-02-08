@@ -1,23 +1,36 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Search, Calendar, User, FileText, ChevronRight } from 'lucide-react';
-import { SearchResult, SEARCH_INDEX } from '@/data/searchIndex';
+import { useState, useEffect, useRef } from 'react';
+import { X, Search, Calendar, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import clsx from 'clsx';
+import { useRouter } from 'next/navigation';
+import { suggestArticles } from '@/lib/actions-article';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface SearchOverlayProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-import { useRouter } from 'next/navigation';
+interface SearchResult {
+    id: string;
+    title: string;
+    slug: string;
+    category: string;
+    author: string;
+    date: string;
+    image: string;
+}
 
 export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'title' | 'author' | 'date'>('all');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  const debouncedQuery = useDebounce(query, 300);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -26,10 +39,46 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     if (isOpen) {
       setIsAnimating(true);
       setTimeout(() => inputRef.current?.focus(), 100); 
+      // Prevent body scroll (safe check)
+      if (typeof document !== 'undefined') {
+          document.body.style.overflow = 'hidden';
+      }
     } else {
       setTimeout(() => setIsAnimating(false), 300); 
+      if (typeof document !== 'undefined') {
+          document.body.style.overflow = 'unset';
+      }
     }
+    return () => { 
+        if (typeof document !== 'undefined') {
+            document.body.style.overflow = 'unset'; 
+        }
+    };
   }, [isOpen]);
+
+  // Fetch Suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+        if (!debouncedQuery || debouncedQuery.length < 2) {
+            setResults([]);
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const data = await suggestArticles(debouncedQuery);
+            setResults(data);
+        } catch (error) {
+            console.error("Search failed", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    fetchSuggestions();
+  }, [debouncedQuery]);
+
 
   const handleSearch = () => {
       if (!query.trim()) return;
@@ -43,67 +92,18 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       }
   };
 
-
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [isOpen]);
-
-  // Reset query on close
-  useEffect(() => {
-    if (!isOpen) {
-        // Optional: keep query or clear it. Clearing for fresh start.
-        setTimeout(() => setQuery(''), 300);
-    }
-  }, [isOpen]);
-
-  // --- SEARCH LOGIC ---
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-
-    const lowerQuery = query.toLowerCase();
-
-    return SEARCH_INDEX.filter(item => {
-      // 1. General Search
-      if (activeTab === 'all') {
-        return (
-             item.title.toLowerCase().includes(lowerQuery) ||
-             item.author.toLowerCase().includes(lowerQuery) ||
-             item.category.toLowerCase().includes(lowerQuery) ||
-             item.date.includes(query) // Case sensitive usually fine for Bengali dates
-        );
-      }
-      
-      // 2. Specific Filters
-      if (activeTab === 'title') return item.title.toLowerCase().includes(lowerQuery);
-      if (activeTab === 'author') return item.author.toLowerCase().includes(lowerQuery);
-      if (activeTab === 'date') return item.date.includes(query); // Simple string match for date
-
-      return false;
-    }).slice(0, 15); // Limit to 15 results for performance
-  }, [query, activeTab]);
-
-
-  // Determine Animation Classes
-  // We use `isOpen` to trigger the class change, but coordinate it with render.
-  // Actually, simpler to just use isOpen directly since Next.js/React handles it fast.
   if (!isOpen && !isAnimating) return null;
 
   return (
     <div 
         className={clsx(
-            "fixed inset-0 z-[100] transition-all duration-300 ease-in-out",
+            "fixed inset-0 z-100 transition-all duration-300 ease-in-out",
             isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         )}
     >
       {/* Backdrop (Glassmorphism) */}
       <div 
-        className="absolute inset-0 bg-white/90 backdrop-blur-xl dark:bg-black/90"
+        className="absolute inset-0 bg-white/95 backdrop-blur-xl dark:bg-black/95"
         onClick={onClose}
       />
 
@@ -119,7 +119,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             </button>
         </div>
 
-        {/* Search Input Container */}
+        {/* Search Input */}
         <div 
             className={clsx(
                 "transition-all duration-500 delay-100 ease-out transform",
@@ -128,10 +128,14 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         >
             <div className="relative group">
                 <Search 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-red transition-colors" 
+                    className={clsx(
+                        "absolute left-0 top-1/2 -translate-y-1/2 transition-colors",
+                        isLoading ? "text-brand-red animate-pulse" : "text-gray-400 group-focus-within:text-brand-red"
+                    )}
                     size={40} 
                     strokeWidth={1.5}
                 />
+                
                 <input
                     ref={inputRef}
                     type="text"
@@ -141,26 +145,51 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     placeholder="কী খুঁজতে চান? (লিখে Enter চাপুন...)"
                     className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 py-6 pl-14 text-3xl md:text-5xl font-light text-gray-900 dark:text-white placeholder:text-gray-300 focus:outline-none focus:border-brand-red transition-all"
                 />
+                
+                {isLoading && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 text-brand-red">
+                        <Loader2 size={24} className="animate-spin" />
+                    </div>
+                )}
             </div>
-
-            {/* Filter Tabs */}
-            <div className="flex gap-4 mt-6">
-                 <FilterTab label="সব ফলাফল" icon={Search} active={activeTab === 'all'} onClick={() => setActiveTab('all')} />
-                 <FilterTab label="শিরোনাম" icon={FileText} active={activeTab === 'title'} onClick={() => setActiveTab('title')} />
-                 <FilterTab label="লেখক" icon={User} active={activeTab === 'author'} onClick={() => setActiveTab('author')} />
-                 <FilterTab label="তারিখ" icon={Calendar} active={activeTab === 'date'} onClick={() => setActiveTab('date')} />
-            </div>
+            
+            <p className="mt-4 text-gray-400 text-sm">
+                গুগল স্টাইলে সার্চ করুন, অথবা শিরোনাম লিখুন
+            </p>
+            
+            {/* Popular Searches */}
+            {!query && (
+                <div className="mt-8">
+                    <h4 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-3">জনপ্রিয় অনুসন্ধান</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {['ফ্যাসিবাদ', 'নির্বাচন', 'দ্রব্যমূল্য', 'ক্রিকেট', 'শেখ হাসিনা', 'বন্যা', 'রোহিঙ্গা'].map((tag) => (
+                            <button
+                                key={tag}
+                                onClick={() => {
+                                    setQuery(tag);
+                                    // Optional: automatically trigger search or just populate input
+                                    // router.push(`/search?q=${encodeURIComponent(tag)}`); onClose();
+                                }}
+                                className="px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-brand-red hover:text-white text-gray-600 dark:text-gray-300 text-sm rounded-full transition-colors"
+                            >
+                                #{tag}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Results Grid */}
         <div className="flex-1 overflow-y-auto mt-12 pb-20 scrollbar-hide">
-            {query && results.length === 0 ? (
+            {query && results.length === 0 && !isLoading && debouncedQuery.length >= 2 ? (
                  <div className="text-center py-20 animate-fade-in-up">
                     <p className="text-2xl text-gray-400">কোনো ফলাফল পাওয়া যায়নি</p>
                     <p className="text-gray-500 mt-2">অন্য কোনো কীওয়ার্ড দিয়ে চেষ্টা করুন</p>
                  </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Suggested Results */}
                     {results.map((item, idx) => (
                         <Link 
                             href={`/article/${item.id}`} 
@@ -168,12 +197,11 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                             onClick={onClose}
                             className={clsx(
                                 "group bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-brand-red/30 hover:shadow-lg transition-all duration-300 animate-fade-in-up",
-                                // Progressive delay (staggered animation) via style is simpler than complex class logic
                             )}
                             style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'both' }}
                         >
                             <div className="flex gap-4 items-start">
-                                <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+                                <div className="relative w-24 h-24 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                                     <Image 
                                         src={item.image} 
                                         alt={item.title} 
@@ -207,22 +235,4 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       </div>
     </div>
   );
-}
-
-// Sub-component for Filter Tabs
-function FilterTab({ label, icon: Icon, active, onClick }: { label: string, icon: any, active: boolean, onClick: () => void }) {
-    return (
-        <button 
-            onClick={onClick}
-            className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 border",
-                active 
-                    ? "bg-brand-red text-white border-brand-red shadow-lg shadow-brand-red/20" 
-                    : "bg-transparent text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-            )}
-        >
-            <Icon size={14} />
-            {label}
-        </button>
-    )
 }

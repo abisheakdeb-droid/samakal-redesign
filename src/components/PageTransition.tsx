@@ -14,14 +14,14 @@ export default function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="popLayout">
       <motion.div
         key={pathname}
         variants={variants}
         initial="hidden"
         animate="enter"
         exit="exit"
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        transition={{ type: "tween", duration: 0.3, ease: "easeOut" }}
         className="min-h-screen"
       >
         {children}

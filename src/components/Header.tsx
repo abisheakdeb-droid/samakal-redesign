@@ -1,11 +1,17 @@
 "use client";
 
-import { Search, Menu, User, Bell, ChevronDown } from "lucide-react";
+import { Search, Menu, User, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { generateBlurPlaceholder } from "@/utils/image";
+import NotificationManager from "@/components/NotificationManager";
+
+import { useState } from 'react';
+import SearchOverlay from '@/components/SearchOverlay';
+import MobileMenu from '@/components/MobileMenu';
+import { SiteSettings } from "@/lib/actions-settings";
 
 type NavItem = {
   label: string;
@@ -14,51 +20,27 @@ type NavItem = {
   megaMenu?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "সর্বশেষ", href: "/category/latest" },
-  { label: "রাজনীতি", href: "/category/politics" },
-  { label: "রাজধানী", href: "/category/capital" },
-  { 
-    label: "সারাদেশ", 
-    href: "/category/bangladesh",
-    subItems: [
-       { label: "ঢাকা", href: "/category/dhaka" },
-       { label: "চট্টগ্রাম", href: "/category/chattogram" },
-       { label: "রাজশাহী", href: "/category/rajshahi" },
-       { label: "খুলনা", href: "/category/khulna" },
-       { label: "বরিশাল", href: "/category/barishal" },
-       { label: "সিলেট", href: "/category/sylhet" },
-       { label: "রংপুর", href: "/category/rangpur" },
-       { label: "ময়মনসিংহ", href: "/category/mymensingh" },
-    ]
-  },
-  { label: "অপরাধ", href: "/category/crime" },
-  { label: "বিশ্ব", href: "/category/world" },
-  { label: "বাণিজ্য", href: "/category/business" },
-  { label: "খেলা", href: "/category/sports" },
-  { label: "বিনোদন", href: "/category/entertainment" },
-  { label: "ভিডিও", href: "/video" },
-  { label: "ছবি", href: "/photo" },
-  {
-    label: "অন্যান্য",
-    href: "#",
-    megaMenu: true,
-    subItems: [
-        "চতুরঙ্গ", "নারী দিবস", "সাহিত্য ও সংস্কৃতি", "ছবি", "প্রবাস",
-        "জীবন সংগ্রাম", "ভ্রমণ", "ফিচার", "শিক্ষা", "বিশেষ সমকাল",
-        "শিল্প-বাণিজ্য", "সাক্ষাৎকার", "প্রযুক্তি", "প্রিয় চট্টগ্রাম",
-        "কালের খেয়া", "শেয়ারবাজার", "সমকাল অনুসন্ধান", "অফবিট",
-        "আর্কাইভ", "মতামত", "চাকরি", "শিল্পমঞ্চ", "বিশেষ আয়োজন"
-    ].map(l => ({ label: l, href: `/category/${l.replace(/\s+/g, '-').toLowerCase()}` }))
-  }
-];
+interface HeaderProps {
+  settings?: SiteSettings;
+}
 
-// ... imports
-import { useState } from 'react';
-import SearchOverlay from '@/components/SearchOverlay';
-import MobileMenu from '@/components/MobileMenu';
-
-export default function Header() {
+export default function Header({ settings }: HeaderProps) {
+  const navItems = settings?.navigation_menu || [
+    { label: "সর্বশেষ", href: "/category/latest" },
+    { label: "বাংলাদেশ", href: "/category/bangladesh" },
+    { label: "রাজনীতি", href: "/category/politics" },
+    { label: "অর্থনীতি", href: "/category/economics" },
+    { label: "বিশ্ব", href: "/category/world" },
+    { label: "খেলা", href: "/category/sports" },
+    { label: "বিনোদন", href: "/category/entertainment" },
+    { label: "মতামত", href: "/category/opinion" },
+    { label: "জীবনযাপন", href: "/category/lifestyle" },
+    { label: "অপরাধ", href: "/category/crime" },
+    { label: "রাজধানী", href: "/category/capital" },
+    { label: "চাকরি", href: "/category/jobs" },
+    { label: "ভিডিও", href: "/video" },
+    { label: "ছবি", href: "/photo" },
+  ];
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,9 +59,10 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="relative h-12 w-48 md:h-10 md:w-40">
           <Image
-            src="/samakal-logo.png"
-            alt="Samakal Logo"
+            src={settings?.site_logo || "/samakal-logo.png"}
+            alt={settings?.site_name || "Samakal Logo"}
             fill
+            sizes="(max-width: 768px) 192px, 160px"
             className="object-contain object-left"
             priority
             placeholder="blur"
@@ -101,7 +84,7 @@ export default function Header() {
         <div className="container mx-auto px-4 flex justify-between items-center h-12">
           {/* Main Nav Links */}
           <nav className="hidden md:flex gap-1 text-gray-800 font-medium">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item: NavItem) => {
               const isActive = pathname === item.href;
               const hasSub = !!item.subItems;
 
@@ -125,7 +108,7 @@ export default function Header() {
                     {/* Dropdown Menu */}
                     {hasSub && (
                         <div className={clsx(
-                            "absolute top-full left-0 bg-white shadow-xl border-t-2 border-brand-red hidden group-hover:block z-50 rounded-b-lg border-x border-b border-gray-100 p-4 animate-in fade-in slide-in-from-top-2 duration-200",
+                            "absolute top-full left-0 bg-white shadow-xl border-t-2 border-t-brand-red hidden group-hover:block z-50 rounded-b-lg border-x border-b border-gray-100 p-4 animate-in fade-in slide-in-from-top-2 duration-200",
                             item.megaMenu ? "w-[600px] right-0 left-auto md:left-auto" : "min-w-[200px]"
                         )}>
                             {/* Adjustment for mega menu to align properly if it goes off screen is tricky with pure CSS locally, 
@@ -135,7 +118,7 @@ export default function Header() {
                                 "grid gap-x-6 gap-y-2",
                                 item.megaMenu ? "grid-cols-3" : "grid-cols-1"
                             )}>
-                                {item.subItems?.map((sub) => (
+                                {item.subItems?.map((sub: { label: string; href: string }) => (
                                     <Link 
                                         key={sub.label} 
                                         href={sub.href}
@@ -171,10 +154,9 @@ export default function Header() {
             >
                 <Search size={20} />
             </button>
-            <button className="hover:text-brand-red" aria-label="Notifications">
-              <Bell size={20} />
-            </button>
-            <Link href="/admin/login" target="_blank" className="hover:text-brand-red" aria-label="User account">
+            {/* Push Notification Toggle */}
+            <NotificationManager />
+            <Link href="/user/bookmarks" className="hover:text-brand-red" aria-label="Saved Articles">
               <User size={20} />
             </Link>
           </div>

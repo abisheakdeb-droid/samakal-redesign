@@ -38,6 +38,18 @@ const NAV_ITEMS: NavItem[] = [
   { label: "বিনোদন", href: "/category/entertainment" },
   { label: "ভিডিও", href: "/video" },
   { label: "ছবি", href: "/photo" },
+  { 
+      label: "অন্যান্য", 
+      href: "#",
+      subItems: [
+        { label: "চতুরঙ্গ", href: "/category/chaturanga" },
+        { label: "নারী দিবস", href: "/category/nari-dibos" },
+        { label: "সাহিত্য ও সংস্কৃতি", href: "/category/literature" },
+        { label: "আর্কাইভ", href: "/archive" },
+        { label: "মতামত", href: "/category/opinion" },
+        { label: "চাকরি", href: "/category/jobs" },
+      ]
+  },
 ];
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
@@ -68,7 +80,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       {/* Backdrop */}
       <div
         className={clsx(
-          "fixed inset-0 bg-black/50 z-[100] transition-opacity duration-300",
+          "fixed inset-0 bg-black/50 z-100 transition-opacity duration-300",
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -78,7 +90,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
       {/* Drawer */}
       <div
         className={clsx(
-          "fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-[101] shadow-2xl transform transition-transform duration-300 ease-in-out",
+          "fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white z-101 shadow-2xl transform transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
         role="dialog"

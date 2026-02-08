@@ -12,6 +12,7 @@ interface SEOPanelProps {
   onDescriptionChange: (value: string) => void;
   onCanonicalUrlChange: (value: string) => void;
   onGenerateSEO?: () => void;
+  isGenerating?: boolean;
 }
 
 export default function SEOPanel({ 
@@ -21,9 +22,9 @@ export default function SEOPanel({
   canonicalUrl,
   onTitleChange, 
   onDescriptionChange,
-  onDescriptionChange,
   onCanonicalUrlChange,
-  onGenerateSEO
+  onGenerateSEO,
+  isGenerating = false
 }: SEOPanelProps) {
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('edit');
 
@@ -86,6 +87,7 @@ export default function SEOPanel({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-medium text-gray-700">মেটা বর্ণনা (Meta Description)</label>
+                <span className={`text-xs ${displayCountColor(description?.length || 0, DESC_LIMIT)}`}>
                   {description?.length || 0}/{DESC_LIMIT}
                 </span>
               </div>
@@ -93,10 +95,11 @@ export default function SEOPanel({
               {onGenerateSEO && (
                  <button
                     onClick={onGenerateSEO}
-                    className="mb-2 text-xs flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-800 transition-colors bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:border-blue-200"
+                    disabled={isGenerating}
+                    className="mb-2 text-xs flex items-center gap-1.5 text-blue-600 font-medium hover:text-blue-800 transition-colors bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
                  >
-                    <Sparkles size={12} />
-                    Auto Generate with AI
+                    <Sparkles size={12} className={isGenerating ? "animate-spin" : ""} />
+                    {isGenerating ? "Generating..." : "Auto Generate with AI"}
                  </button>
               )}
 

@@ -3,19 +3,19 @@
 import { 
   Sparkles, 
   Wand2, 
-  CheckCheck, 
   BookOpen, 
-  MessageSquare,
   ChevronDown,
-  Loader2
+  Loader2,
+  Globe
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAI } from "@/hooks/use-ai";
 import { Editor } from "@tiptap/react";
 import { 
   completeText, 
-  adjustTone, 
-  analyzeReadability 
+  translateText,
+  adjustTone,
+  analyzeReadability
 } from "@/lib/ai/writing-assistant";
 import { toast } from "sonner";
 
@@ -40,7 +40,7 @@ export function AIToolbar({ editor }: AIToolbarProps) {
   }, []);
 
   const handleCompleteText = async () => {
-    const { from, to } = editor.state.selection;
+    const { from } = editor.state.selection;
     
     // Get text before cursor (context)
     const context = editor.state.doc.textBetween(Math.max(0, from - 500), from, '\n');
@@ -122,6 +122,33 @@ export function AIToolbar({ editor }: AIToolbarProps) {
     );
   };
 
+  const handleTranslate = async (targetLang: 'en' | 'bn') => {
+    const { from, to, empty } = editor.state.selection;
+    const selectedText = empty ? editor.getText() : editor.state.doc.textBetween(from, to, '\n');
+
+    if (!selectedText || selectedText.length < 5) {
+        toast.error("Please select text or write content to translate");
+        return;
+    }
+
+    setIsOpen(false);
+
+    await generate(
+        `Translating to ${targetLang === 'en' ? 'English' : 'Bengali'}...`,
+        () => translateText(selectedText, targetLang),
+        (translatedBase) => {
+            if (translatedBase) {
+                // If text was selected, replace it. If not, append to bottom (or replace all? safer to replace/insert at cursor)
+                // If empty selection, we decided to translate WHOLE doc above, but let's just append for safety or replace? 
+                // Let's stick to: if selected, replace. If not, toast copy or append?
+                // Better UX: Insert at cursor if empty, replace if selected.
+                editor.chain().focus().insertContent(translatedBase).run();
+                toast.success("Translation inserted!");
+            }
+        }
+    );
+  };
+
   return (
     <div className="relative inline-block" ref={dropdownRef}>
       <button
@@ -170,6 +197,29 @@ export function AIToolbar({ editor }: AIToolbarProps) {
           </button>
 
           <div className="h-px bg-gray-100 my-1.5 mx-1" />
+
+          {/* Translation Section */}
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1.5 mb-1">
+             Translation
+          </div>
+          <div className="grid grid-cols-2 gap-1 mb-1.5">
+             <button
+                onClick={() => handleTranslate('en')}
+                className="px-2 py-1.5 rounded-md hover:bg-gray-50 border border-gray-100 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors flex flex-col items-center gap-1"
+             >
+                <Globe size={12} />
+                To English
+             </button>
+             <button
+                onClick={() => handleTranslate('bn')}
+                className="px-2 py-1.5 rounded-md hover:bg-gray-50 border border-gray-100 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors flex flex-col items-center gap-1"
+             >
+                <Globe size={12} />
+                To Bangla
+             </button>
+          </div>
+
+           <div className="h-px bg-gray-100 my-1.5 mx-1" />
 
           <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1.5 mb-1">
             Tone Adjustment
