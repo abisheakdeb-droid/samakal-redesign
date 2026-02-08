@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, Search } from "lucide-react";
@@ -21,7 +21,7 @@ export default function StickyHeader({
   siteName 
 }: StickyHeaderProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,7 +30,7 @@ export default function StickyHeader({
       // Show compact header when scrolled down past 150px
       if (currentScrollY > 150) {
         // Hide when scrolling down, show when scrolling up
-        if (currentScrollY > lastScrollY) {
+        if (currentScrollY > lastScrollY.current) {
           setIsVisible(false); // Scrolling down - hide
         } else {
           setIsVisible(true); // Scrolling up - show
@@ -39,12 +39,12 @@ export default function StickyHeader({
         setIsVisible(false); // Near top - hide compact header
       }
       
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, []); // Empty dependency array - only run once
 
   return (
     <div
