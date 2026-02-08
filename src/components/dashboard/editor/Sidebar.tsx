@@ -63,8 +63,8 @@ interface SidebarProps {
   setEventId: (val: string) => void;
 
   // Publication
-  status: string;
-  setStatus: (val: string) => void;
+  status: 'draft' | 'published' | 'archived' | 'scheduled';
+  setStatus: (val: 'draft' | 'published' | 'archived' | 'scheduled') => void;
   publishedAt: string;
   setPublishedAt: (val: string) => void;
   scheduledAt: string;
@@ -233,7 +233,7 @@ export default function Sidebar({
                                                 <label className="block text-[10px] font-bold text-amber-800 uppercase mb-1">Status</label>
                                                 <select 
                                                     value={status}
-                                                    onChange={(e) => setStatus(e.target.value)}
+                                                    onChange={(e) => setStatus(e.target.value as 'draft' | 'published' | 'archived' | 'scheduled')}
                                                     className="w-full p-2 bg-white border border-amber-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
                                                 >
                                                     <option value="draft">Draft</option>

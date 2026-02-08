@@ -1,18 +1,23 @@
 const { loadEnvConfig } = require('@next/env');
 const { cwd } = require('process');
-const { db } = require('@vercel/postgres');
+const { createClient } = require('@vercel/postgres');
 const puppeteer = require('puppeteer');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const crypto = require('crypto');
 
 loadEnvConfig(cwd());
 
 const CATEGORY = 'ফিচার';
-const CATEGORY_URL = '/feature/';
-const TARGET_COUNT = 5; // Only need 5 more to reach 15
+// Multiple sources for Feature category
+const SOURCE_URLS = [
+    'https://samakal.com/feature',
+    'https://samakal.com/feature/shoili',
+    'https://samakal.com/feature/sarabela', 
+    'https://samakal.com/feature/ghasphoring'
+];
+const TARGET_COUNT = 20;
 
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads', 'articles');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -20,7 +25,6 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 function generateSlug(title, url = '') {
-  // Use both title and URL to ensure uniqueness  
   const input = title + url + Date.now();
   const hash = crypto.createHash('md5').update(input).digest('hex').substring(0, 12);
   return `-${hash}`;
@@ -52,17 +56,15 @@ async function scrapeArticle(browser, url) {
   try {
     await page.goto(url, {
       waitUntil: 'networkidle2',
-      timeout: 20000
+      timeout: 30000
     });
-    
-    await page.waitForSelector('h1', { timeout: 5000 }).catch(() => {});
     
     const articleData = await page.evaluate(() => {
       const h1 = document.querySelector('h1');
       const title = h1 ? h1.textContent.trim() : '';
       
-      const contentDiv = document.querySelector('#contentDetails.dNewsDesc');
-      const content = contentDiv && contentDiv.innerHTML ? contentDiv.innerHTML : '';
+      const contentDiv = document.querySelector('#contentDetails.dNewsDesc') || document.querySelector('.description');
+      const content = contentDiv ? contentDiv.innerHTML : '';
       
       let imageUrl = '';
       const ogImage = document.querySelector('meta[property="og:image"]');
@@ -78,7 +80,7 @@ async function scrapeArticle(browser, url) {
     
     await page.close();
     
-    if (!articleData.title || !articleData.content || articleData.content.length < 200) {
+    if (!articleData.title || !articleData.content || articleData.content.length < 100) {
       return null;
     }
     
@@ -95,43 +97,56 @@ async function scrapeArticle(browser, url) {
 }
 
 async function getArticleLinks(browser) {
-  const page = await browser.newPage();
+  const allLinks = new Set();
   
-  try {
-    await page.goto(`https://samakal.com${CATEGORY_URL}`, {
-      waitUntil: 'networkidle2',
-      timeout: 20000
-    });
-    
-    const links = await page.evaluate(() => {
-      const articleLinks = [];
-      const linkElements = document.querySelectorAll('a[href*="/article/"]');
-      
-      linkElements.forEach(link => {
-        const href = link.href;
-        if (href && href.includes('/article/') && !articleLinks.includes(href)) {
-          articleLinks.push(href);
-        }
-      });
-      
-      return articleLinks;
-    });
-    
-    await page.close();
-    return links;
-  } catch (error) {
-    await page.close().catch(() => {});
-    return [];
+  for (const sourceUrl of SOURCE_URLS) {
+      console.log(`  Scanning ${sourceUrl}...`);
+      const page = await browser.newPage();
+      try {
+        await page.goto(sourceUrl, {
+          waitUntil: 'networkidle2',
+          timeout: 30000
+        });
+        
+        // Auto-scroll logic could be added here if needed, but for multiple sources we might get enough from initial load
+
+        const links = await page.evaluate(() => {
+          const articleLinks = [];
+          const linkElements = document.querySelectorAll('a[href*="/article/"]');
+          linkElements.forEach(link => {
+            if (link.href && link.href.includes('/article/')) {
+              articleLinks.push(link.href);
+            }
+          });
+          return articleLinks;
+        });
+        
+        links.forEach(l => allLinks.add(l));
+        await page.close();
+      } catch (error) {
+        console.error(`  Error scanning ${sourceUrl}:`, error.message);
+        await page.close().catch(() => {});
+      }
   }
+  
+  return [...allLinks];
 }
 
 async function importArticle(articleData, slug) {
-  const client = await db.connect();
+  const client = createClient();
+  await client.connect();
+  
   try {
+    const existing = await client.sql`SELECT id FROM articles WHERE title = ${articleData.title} LIMIT 1`;
+    if (existing.rows.length > 0) {
+        console.log(`  ⚠️ Duplicate: ${articleData.title.substring(0, 30)}...`);
+        return false;
+    }
+
     await client.sql`
       INSERT INTO articles (
         id, title, slug, content, image, category,
-        status, source, source_url, created_at
+        status, source, source_url, created_at, published_at
       ) VALUES (
         gen_random_uuid(),
         ${articleData.title},
@@ -142,76 +157,70 @@ async function importArticle(articleData, slug) {
         'published',
         'Samakal',
         ${articleData.originalUrl},
+        NOW(),
         NOW()
       )
     `;
-    await client.end();
     return true;
   } catch (error) {
-    await client.end();
+    console.error('  ❌ DB Error:', error.message);
     return false;
+  } finally {
+    await client.end();
   }
 }
 
 async function main() {
-  console.log(`🚀 Importing ${CATEGORY} articles...\n`);
-  console.log(`📊 Target: ${TARGET_COUNT} articles\n`);
+  console.log(`🚀 Importing ${CATEGORY} articles...`);
   
   const browser = await puppeteer.launch({ headless: 'new' });
   
-  let success = 0;
-  let failed = 0;
-  
   try {
-    console.log('📖 Loading category page...');
+    console.log('📖 Loading category pages...');
     const links = await getArticleLinks(browser);
-    console.log(`✅ Found ${links.length} article links\n`);
+    console.log(`✅ Found ${links.length} total unique article links\n`);
+    
+    let success = 0;
     
     for (let i = 0; i < links.length && success < TARGET_COUNT; i++) {
-      const url = links[i];
-      console.log(`[${i + 1}] Processing: ${url.substring(0, 60)}...`);
-      
-      const articleData = await scrapeArticle(browser, url);
-      
-      if (!articleData) {
-        console.log('  ❌ Scrape failed\n');
-        failed++;
-        continue;
-      }
-      
-      const slug = generateSlug(articleData.title, articleData.originalUrl);
-      console.log(`  📝 ${articleData.title.substring(0, 60)}...`);
-      
-      if (articleData.imageUrl) {
-        const localImage = await downloadImage(articleData.imageUrl, slug);
-        if (localImage) {
-          articleData.imageUrl = localImage;
-          console.log(`  ✅ Image saved`);
+        const url = links[i];
+        console.log(`[${i + 1}/${links.length}] Processing: ${url}`);
+        
+        try {
+            const articleData = await scrapeArticle(browser, url);
+            
+            if (!articleData) {
+                console.log('  ❌ Scrape failed');
+                continue;
+            }
+            
+            const slug = generateSlug(articleData.title, articleData.originalUrl);
+            
+            if (articleData.imageUrl) {
+                const localImage = await downloadImage(articleData.imageUrl, slug);
+                if (localImage) articleData.imageUrl = localImage;
+            }
+            
+            const imported = await importArticle(articleData, slug);
+            if (imported) {
+                success++;
+                console.log(`  ✅ Success! (${success}/${TARGET_COUNT})\n`);
+            }
+            
+            await new Promise(r => setTimeout(r, 1000)); // Rate limiting
+            
+        } catch (e) {
+            console.error(`Error processing ${url}:`, e.message);
         }
-      }
-      
-      const imported = await importArticle(articleData, slug);
-      
-      if (imported) {
-        success++;
-        console.log(`  ✅ Import successful (${success}/${TARGET_COUNT})\n`);
-      } else {
-        failed++;
-        console.log(`  ❌ Import failed\n`);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
     }
+    
+    console.log(`\n🎉 Completed! Total imported: ${success}`);
+    
   } catch (error) {
     console.error(`\n❌ Fatal error: ${error.message}`);
   } finally {
     await browser.close();
   }
-  
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`✅ ${CATEGORY}: ${success} articles imported`);
-  console.log(`❌ Failed: ${failed}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 
 main();

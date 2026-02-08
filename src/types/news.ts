@@ -11,8 +11,9 @@ export interface NewsItem {
     date: string;
     time: string;
     content: string;
+    status: 'draft' | 'published' | 'archived' | 'scheduled';
     published_at?: string;
-    news_type?: string;
+    news_type?: 'breaking' | 'regular' | 'feature' | 'opinion' | 'photo_story';
     location?: string;
     tags?: string[];
     source?: string;

@@ -2,7 +2,7 @@ import type { ArticleRow, ExtraArticleData } from "@/types/database";
 import { getBengaliCategory } from "@/utils/category";
 
 // Helper to map DB result to UI NewsItem shape
-import { toBanglaDigits, formatRelativeTime } from "@/utils/bn";
+import { formatRelativeTime } from "@/utils/bn";
 
 // Helper to decode HTML entities like &nbsp;
 function decodeHTMLEntities(text: string): string {
@@ -35,7 +35,7 @@ export function mapArticleToNewsItem(
     let relatedVideo = undefined;
     if (article.video_url) {
         const isYoutube = article.video_url.includes('youtube') || article.video_url.includes('youtu.be');
-        const isFacebook = article.video_url.includes('facebook');
+        // Removed unused isFacebook check
         
         let videoId = article.video_url; 
         if (isYoutube) {
@@ -55,6 +55,7 @@ export function mapArticleToNewsItem(
         id: article.id,
         title: article.title,
         sub_headline: article.sub_headline,
+        status: article.status as 'draft' | 'published' | 'archived' | 'scheduled',
         slug: article.slug,
         image: article.image || '/placeholder.svg',
         category: getBengaliCategory(article.category),
@@ -64,7 +65,7 @@ export function mapArticleToNewsItem(
         time: formatRelativeTime(dateObj.toISOString()),
         summary: stripHtml(article.content || '').substring(0, 150) + '...',
         content: article.content || '',
-        news_type: article.news_type,
+        news_type: article.news_type as 'breaking' | 'regular' | 'feature' | 'opinion' | 'photo_story',
         location: article.location,
         source: article.source,
         sourceUrl: article.source_url,

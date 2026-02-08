@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
     remotePatterns: [
       {
         protocol: "https",
@@ -19,6 +21,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "samakal.com",
       },
+      {
+        protocol: "https",
+        hostname: "assets.vercel.com",
+      }
     ],
   },
   

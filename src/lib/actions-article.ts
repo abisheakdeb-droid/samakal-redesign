@@ -679,7 +679,7 @@ export async function createArticle(formData: FormData) {
 
         // **FIX: Determine parent_category from category**
         const { getParentCategory } = await import('@/config/sub-categories');
-        const parentCategory = getParentCategory(category) || 'null';
+        const parentCategory = getParentCategory(category || '') || 'null';
 
         const result = await sql`
         INSERT INTO articles (
@@ -779,7 +779,7 @@ export async function updateArticle(formData: FormData) {
 
         // **FIX: Update parent_category based on category**
         const { getParentCategory } = await import('@/config/sub-categories');
-        const parentCategory = getParentCategory(category) || null;
+        const parentCategory = getParentCategory(category || '') || null;
 
         await sql`
         UPDATE articles SET

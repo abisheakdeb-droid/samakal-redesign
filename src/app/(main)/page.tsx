@@ -5,21 +5,39 @@ import ArticleCardSkeleton from "@/components/skeletons/ArticleCardSkeleton";
 import { clsx } from "clsx";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from 'next/dynamic';
 import LatestSidebarWidget from "@/components/LatestSidebarWidget";
-import HeroCard from "@/components/HeroCard";
+// import HeroCard from "@/components/HeroCard"; // Keep Hero static for LCP
 import Sidebar from "@/components/Sidebar"; 
 import ScrollReveal from "@/components/ScrollReveal"; 
 import { StaggerWrapper, StaggerItem } from "@/components/StaggerWrapper"; 
-import { CATEGORY_MAP, PARENT_CATEGORIES } from "@/config/categories"; // Keep CATEGORY_MAP for labels
-import AdSlot from "@/components/AdSlot";
-import NativeAd from "@/components/NativeAd";
-import EventSection from "@/components/EventSection";
+import { CATEGORY_MAP, PARENT_CATEGORIES } from "@/config/categories"; 
+// import AdSlot from "@/components/AdSlot";
+// import NativeAd from "@/components/NativeAd"; 
+// import EventSection from "@/components/EventSection";
 import { fetchLatestArticles, fetchArticlesByCategory, fetchMostReadArticles, fetchFeaturedArticles } from "@/lib/actions-article";
 import RecommendedFeed from "@/components/RecommendedFeed";
-import CategorySection from "@/components/CategorySection";
+// import CategorySection from "@/components/CategorySection";
 
+// Dynamically Import Heavy / Below-Fold Components
+const HeroCard = dynamic(() => import("@/components/HeroCard")); // Actually, keep Hero dynamic if data fetch allows, but usually static is better for LCP. Let's keep Hero static? User requested Optimization. Let's keep Hero static for LCP, but others dynamic.
+// Wait, `HeroCard` is above fold. Keep static.
+// `Sidebar` is partly above fold. Keep static.
+// `LatestSidebarWidget` is above fold. Keep static.
 
-export const dynamic = 'force-dynamic';
+const EventSection = dynamic(() => import("@/components/EventSection"), {
+  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded my-8"></div>
+});
+
+const CategorySection = dynamic(() => import("@/components/CategorySection"), {
+  loading: () => <div className="h-96 bg-gray-50 animate-pulse rounded mb-8"></div>
+});
+
+const AdSlot = dynamic(() => import("@/components/AdSlot"));
+const NativeAd = dynamic(() => import("@/components/NativeAd"));
+
+export const dynamicParams = true; // Use valid Next.js segment config
+export const revalidate = 60; 
 
 export default async function Home() {
   // Fetch all core data in parallel to reduce waterfall latency

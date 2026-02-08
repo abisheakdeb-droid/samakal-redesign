@@ -19,53 +19,53 @@ import { toast } from 'sonner';
 import { createArticle } from '@/lib/actions-article';
 import Sidebar from './Sidebar';
 import { Toolbar } from './Toolbar';
-import { NewsType } from './types';
+import { NewsType, ArticleData } from './types';
 import { Save, Monitor, Settings, Clock, Sparkles } from 'lucide-react';
 import { useAI } from '@/hooks/use-ai';
 import { generateHeadlines, generateMetaDescription } from '@/lib/ai/writing-assistant';
 
-export function Editor() {
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
+export function Editor({ initialData }: { initialData?: ArticleData }) {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [category, setCategory] = useState(initialData?.category || '');
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   // Core Metadata State
-  const [subHeadline, setSubHeadline] = useState('');
-  const [newsType, setNewsType] = useState<NewsType>('regular');
-  const [location, setLocation] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [keywords, setKeywords] = useState<string[]>([]);
+  const [subHeadline, setSubHeadline] = useState(initialData?.sub_headline || '');
+  const [newsType, setNewsType] = useState<NewsType>(initialData?.news_type || 'regular');
+  const [location, setLocation] = useState(initialData?.location || '');
+  const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [keywords, setKeywords] = useState<string[]>(initialData?.keywords || []);
   
   // UX Polish State
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(initialData?.updated_at ? new Date(initialData.updated_at) : null);
   const [isSaving, setIsSaving] = useState(false);
   const [wordCount, setWordCount] = useState(0);
 
   // Media State
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<any[]>(initialData?.images || []);
   
   // AI State
   const { isGenerating, generate } = useAI();
   const [showHeadlineSuggestions, setShowHeadlineSuggestions] = useState(false);
   const [suggestedHeadlines, setSuggestedHeadlines] = useState<string[]>([]);
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState(initialData?.video_url || '');
 
   // Attribution & SEO State
-  const [contributors, setContributors] = useState<any[]>([]);
-  const [source, setSource] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [seoTitle, setSeoTitle] = useState('');
-  const [seoDescription, setSeoDescription] = useState('');
-  const [canonicalUrl, setCanonicalUrl] = useState('');
+  const [contributors, setContributors] = useState<any[]>(initialData?.contributors || []);
+  const [source, setSource] = useState(initialData?.source || '');
+  const [sourceUrl, setSourceUrl] = useState(initialData?.source_url || '');
+  const [seoTitle, setSeoTitle] = useState(initialData?.seo_title || '');
+  const [seoDescription, setSeoDescription] = useState(initialData?.seo_description || '');
+  const [canonicalUrl, setCanonicalUrl] = useState(initialData?.canonical_url || '');
   
   // Events (Placeholder for now)
-  const [eventId, setEventId] = useState('');
+  const [eventId, setEventId] = useState(initialData?.event_id || '');
   const [events, setEvents] = useState<any[]>([]);
 
   // Publication State
-  const [status, setStatus] = useState('draft');
-  const [publishedAt, setPublishedAt] = useState(new Date().toISOString().slice(0, 16));
+  const [status, setStatus] = useState(initialData?.status || 'draft');
+  const [publishedAt, setPublishedAt] = useState(initialData?.created_at ? new Date(initialData.created_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16));
   const [scheduledAt, setScheduledAt] = useState('');
 
   const handleGenerateSEO = async () => {

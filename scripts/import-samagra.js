@@ -9,9 +9,9 @@ const crypto = require('crypto');
 
 loadEnvConfig(cwd());
 
-const CATEGORY = 'মতামত';
-const CATEGORY_URL = '/opinion/';
-const TARGET_COUNT = 20; // Increased target to ensure we get enough
+const CATEGORY = 'সমগ্র'; // Mapping 'Whole Country' to 'Samagra'
+const SOURCE_URL = 'https://samakal.com/whole-country';
+const TARGET_COUNT = 20;
 
 const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads', 'articles');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -94,7 +94,7 @@ async function getArticleLinks(browser) {
   const page = await browser.newPage();
   
   try {
-    await page.goto(`https://samakal.com${CATEGORY_URL}`, {
+    await page.goto(SOURCE_URL, {
       waitUntil: 'networkidle2',
       timeout: 30000
     });
@@ -119,21 +119,17 @@ async function getArticleLinks(browser) {
 
     const links = await page.evaluate(() => {
       const articleLinks = [];
-      // Selector targeting common article links
       const linkElements = document.querySelectorAll('a[href*="/article/"]');
-      
       linkElements.forEach(link => {
-        const href = link.href;
-        if (href && href.includes('/article/') && !articleLinks.includes(href)) {
-          articleLinks.push(href);
+        if (link.href && link.href.includes('/article/') && !articleLinks.includes(link.href)) {
+          articleLinks.push(link.href);
         }
       });
-      
       return articleLinks;
     });
     
     await page.close();
-    return [...new Set(links)]; // Remove duplicates
+    return links;
   } catch (error) {
     await page.close().catch(() => {});
     return [];
@@ -141,12 +137,10 @@ async function getArticleLinks(browser) {
 }
 
 async function importArticle(articleData, slug) {
-  // Create a FRESH client for every single insertion to avoid timeout/pool issues
   const client = createClient();
   await client.connect();
   
   try {
-    // Check for duplicates first
     const existing = await client.sql`SELECT id FROM articles WHERE title = ${articleData.title} LIMIT 1`;
     if (existing.rows.length > 0) {
         console.log(`  ⚠️ Duplicate: ${articleData.title.substring(0, 30)}...`);
@@ -176,7 +170,7 @@ async function importArticle(articleData, slug) {
     console.error('  ❌ DB Error:', error.message);
     return false;
   } finally {
-    await client.end(); // CRITICAL: Close connection immediately
+    await client.end();
   }
 }
 
@@ -192,7 +186,6 @@ async function main() {
     
     let success = 0;
     
-    // Process in batches of 1 to be extremely safe, but we can just loop
     for (let i = 0; i < links.length && success < TARGET_COUNT; i++) {
         const url = links[i];
         console.log(`[${i + 1}/${links.length}] Processing: ${url}`);
@@ -201,7 +194,7 @@ async function main() {
             const articleData = await scrapeArticle(browser, url);
             
             if (!articleData) {
-                console.log('  ❌ Scrape failed (content missing or empty)');
+                console.log('  ❌ Scrape failed');
                 continue;
             }
             
@@ -218,7 +211,6 @@ async function main() {
                 console.log(`  ✅ Success! (${success}/${TARGET_COUNT})\n`);
             }
             
-            // Wait a bit to be gentle
             await new Promise(r => setTimeout(r, 1000));
             
         } catch (e) {

@@ -108,7 +108,7 @@ export interface ArticleData {
   title: string;
   slug: string;
   content: string;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'scheduled';
   category: string;
   image?: string;
   created_at?: string;
