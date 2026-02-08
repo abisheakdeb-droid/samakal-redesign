@@ -11,7 +11,8 @@ import { formatRelativeTime } from "@/utils/bn";
 import { generateBlurPlaceholder } from "@/utils/image";
 import HistoryTracker from "@/components/HistoryTracker";
 import FontSizeToggle from "@/components/FontSizeToggle";
-import { toast } from "sonner"; // Ensure sonner is imported
+import ImageLightbox from "@/components/ImageLightbox";
+import { toast } from "sonner";
 import { NewsItem } from "@/types/news";
 
 interface ArticleContentProps {
@@ -24,6 +25,14 @@ interface ArticleContentProps {
 
 export default function ArticleContent({ article, authorNews, relatedNews, comments, currentUser }: ArticleContentProps) {
     const [sanitizedContent, setSanitizedContent] = useState("");
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxIndex, setLightboxIndex] = useState(0);
+    
+    // Collect all images for lightbox (featured + gallery)
+    const allImages = [
+        ...(article.image ? [article.image] : []),
+        ...(article.images?.map(img => img.url) || [])
+    ];
     
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -126,16 +135,28 @@ export default function ArticleContent({ article, authorNews, relatedNews, comme
     
             {/* Featured Image */}
             {article.image && (
-                <div className="relative w-full md:w-[85%] aspect-video mb-8 rounded-lg overflow-hidden">
+                <div 
+                    className="relative w-full md:w-[85%] aspect-video mb-8 rounded-lg overflow-hidden cursor-pointer group hover:shadow-xl transition-shadow duration-300"
+                    onClick={() => {
+                        setLightboxIndex(0);
+                        setLightboxOpen(true);
+                    }}
+                >
                     <Image 
                         src={article.image} 
                         alt={article.title}
                         fill
                         placeholder="blur"
                         blurDataURL={generateBlurPlaceholder(16, 9)}
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
                         priority
                     />
+                    {/* Click hint overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                        <div className="bg-white/90 px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <span className="text-sm font-bold text-gray-800">ছবি বড় করে দেখুন</span>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -176,6 +197,15 @@ export default function ArticleContent({ article, authorNews, relatedNews, comme
                 <CommentSection articleId={article.id} initialComments={comments || []} currentUser={currentUser} />
             </div>
 
+            {/* Image Lightbox */}
+            {lightboxOpen && (
+                <ImageLightbox 
+                    images={allImages}
+                    initialIndex={lightboxIndex}
+                    onClose={() => setLightboxOpen(false)}
+                />
+            )}
+
             {/* --- GALLERY SECTION (NEW) --- */}
             {article.images && article.images.length > 0 && (
                 <div className="w-full md:w-[85%] my-12">
@@ -184,21 +214,32 @@ export default function ArticleContent({ article, authorNews, relatedNews, comme
                         ফটো গ্যালারি
                      </h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {article.images.map((img) => (
-                            <div key={img.id} className="relative aspect-4/3 rounded-lg overflow-hidden group">
+                        {article.images.map((img, idx) => (
+                            <div 
+                                key={img.id} 
+                                className="relative aspect-4/3 rounded-lg overflow-hidden group cursor-pointer hover:shadow-xl transition-shadow duration-300"
+                                onClick={() => {
+                                    setLightboxIndex((article.image ? 1 : 0) + idx);
+                                    setLightboxOpen(true);
+                                }}
+                            >
                                 <Image 
                                     src={img.url} 
                                     alt={img.caption || "Gallery Image"} 
                                     fill 
                                     placeholder="blur"
                                     blurDataURL={generateBlurPlaceholder(4, 3)}
-                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                    className="object-cover group-hover:scale-110 transition-transform duration-700"
                                 />
                                 {img.caption && (
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-white text-xs">
                                         {img.caption}
                                     </div>
                                 )}
+                                {/* Click hint */}
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                                    <ImageIcon className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" size={48} />
+                                </div>
                             </div>
                         ))}
                      </div>
