@@ -215,3 +215,79 @@ div.ProseMirror table .selectedCell:after {
 .article-content > div ol {
   text-align: left !important;
 }
+
+/* Print Optimization */
+@media print {
+  /* Hide non-essential elements */
+  header,
+  nav,
+  .comment-section,
+  button,
+  .share-buttons,
+  .ad-slot,
+  .native-ad,
+  footer,
+  .breadcrumb,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Optimize text for printing */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+
+  article,
+  .article-content {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* Show page URL at the bottom */
+  article::after {
+    content: "উৎস: " attr(data-url);
+    display: block;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+    font-size: 10pt;
+    color: #666;
+  }
+
+  /* Ensure images fit on page */
+  img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent page breaks inside these elements */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  p, blockquote, pre {
+    page-break-inside: avoid;
+  }
+
+  /* Remove box shadows and borders */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Convert links to show URLs */
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #666;
+  }
+
+  /* Don't show URLs for internal links or anchors */
+  a[href^="#"]::after,
+  a[href^="/"]::after {
+    content: "";
+  }
+}
