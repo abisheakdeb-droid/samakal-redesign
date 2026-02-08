@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { formatRelativeTime } from "@/utils/bn";
 import { generateBlurPlaceholder } from "@/utils/image";
 import HistoryTracker from "@/components/HistoryTracker";
+import FontSizeToggle from "@/components/FontSizeToggle";
 import { toast } from "sonner"; // Ensure sonner is imported
 import { NewsItem } from "@/types/news";
 
@@ -101,8 +102,10 @@ export default function ArticleContent({ article, authorNews, relatedNews, comme
                   </div>
                </div>
     
-               {/* Share Button Group (Top) */}
-               <div className="flex items-center gap-3">
+    
+               {/* Share Button Group (Top) */}\n               <div className="flex flex-wrap items-center gap-3">
+                   <FontSizeToggle />
+                   
                    <ShareButtons title={article.title} slug={article.slug} />
                    
                    <BookmarkButton articleId={article.id} className="p-2 border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600 transition-colors" />

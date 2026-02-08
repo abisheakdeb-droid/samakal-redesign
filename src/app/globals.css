@@ -216,6 +216,35 @@ div.ProseMirror table .selectedCell:after {
   text-align: left !important;
 }
 
+/* Font Size Toggle - Accessibility */
+.font-size-small article,
+.font-size-small .prose {
+  font-size: 14px;
+}
+
+.font-size-medium article,
+.font-size-medium .prose {
+  font-size: 16px;
+}
+
+.font-size-large article,
+.font-size-large .prose {
+  font-size: 18px;
+}
+
+/* Adjust line-height proportionally */
+.font-size-small .prose p {
+  line-height: 1.6;
+}
+
+.font-size-medium .prose p {
+  line-height: 1.7;
+}
+
+.font-size-large .prose p {
+  line-height: 1.8;
+}
+
 /* Print Optimization */
 @media print {
   /* Hide non-essential elements */
