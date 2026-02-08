@@ -11,7 +11,6 @@ import NotificationManager from "@/components/NotificationManager";
 import { useState } from 'react';
 import SearchOverlay from '@/components/SearchOverlay';
 import MobileMenu from '@/components/MobileMenu';
-import StickyHeader from '@/components/StickyHeader';
 import { SiteSettings } from "@/lib/actions-settings";
 
 type NavItem = {
@@ -170,14 +169,6 @@ export default function Header({ settings }: HeaderProps) {
     
     {/* Mobile Menu Drawer */}
     <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-    
-    {/* Sticky Compact Header (appears on scroll) */}
-    <StickyHeader 
-      onSearchClick={() => setIsSearchOpen(true)}
-      onMenuClick={() => setIsMobileMenuOpen(true)}
-      siteLogo={settings?.site_logo}
-      siteName={settings?.site_name}
-    />
     </>
   );
 }
